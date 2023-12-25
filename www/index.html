@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Serial Port Communication</title>
+</head>
+
+<body>
+    <h1>Serial Port Communication</h1>
+    <form id="inputForm">
+        <input type="text" id="inputData" placeholder="Enter data">
+        <button type="submit">Send</button>
+    </form>
+    <h2>Received Data:</h2>
+    <div id="receivedData"></div>
+
+    <script>
+        document.getElementById('inputForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            let data = parseFloat(document.getElementById('inputData').value);
+            if (isNaN(data)) {
+                alert('Please enter a valid number');
+                return;
+            }
+            fetch('/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/octet-stream',
+                },
+                body: new Float32Array([data])
+            }).then(response => response.text())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        });
+
+        // SSEを使用してサーバーからのデータを受信
+        const eventSource = new EventSource('/sse');
+        eventSource.onmessage = function (e) {
+            document.getElementById('receivedData').innerText = e.data;
+        };
+    </script>
+</body>
+
+</html>
