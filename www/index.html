@@ -8,41 +8,124 @@
 
 <body>
     <h1>Serial Port Communication</h1>
-    <form id="inputForm">
-        <input type="text" id="inputData" placeholder="Enter data">
-        <button type="submit">Send</button>
-    </form>
-    <h2>Received Data:</h2>
-    <div id="receivedData"></div>
+
+    <!-- 表を表示するためのコンテナ -->
+    <div id="mhv4DataTableContainer"></div>
+    <!-- Apply ボタン -->
+    <button id="applyButton">Apply</button>
 
     <script>
-        document.getElementById('inputForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            let data = parseFloat(document.getElementById('inputData').value);
-            if (isNaN(data)) {
-                alert('Please enter a valid number');
-                return;
-            }
+        // サーバーからデータを取得し、表を生成する関数
+        function fetchAndDisplayData() {
+            fetch('/mhv4_data')
+                .then(response => response.json())
+                .then(data => {
+                    createTable(data);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // 表を生成する関数
+        function createTable(data) {
+            const container = document.getElementById('mhv4DataTableContainer');
+            const table = document.createElement('table');
+            table.setAttribute('border', '1');
+
+            // テーブルヘッダーを生成（MHV4Dataのフィールドに基づく）
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            // 例: フィールド名を列として追加
+            ['Field1', 'Field2', 'InputField', 'SSEField'].forEach(field => {
+                const th = document.createElement('th');
+                th.textContent = field;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // テーブルデータを生成
+            const tbody = document.createElement('tbody');
+
+            // 入力フィールドの追加
+            data.forEach((item, index) => {
+                const row = document.createElement('tr');
+                //const row = tbody.rows[index];
+                row.appendChild[createCell(item.field1)]; // MHV4Dataに依存
+                row.appendChild[createCell(item.field2)]; // MHV4Dataに依存 2列目
+
+                // input field
+                const inputCell = document.createElement('td'); // 3列目に入力フィールドを追加
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = item.inputValue; // 既存の値をセット
+                input.dataset.index = index; // 行のインデックスをデータ属性として追加
+                inputCell.appendChild(input);
+                row.appendChild(inputCell);
+
+                // SSE field (initially empty)
+                row.appendChild(createCell(''));
+
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(tbody);
+            container.appendChild(table);
+        }
+
+        function createCell(text) {
+            const cell = document.createElement('td');
+            cell.textContent = text;
+            return cell;
+        }
+
+        // Apply ボタンのイベントハンドラ
+        document.getElementById('applyButton').addEventListener('click', () => {
+            const inputs = document.querySelectorAll('table input[type="number"]');
+            const values = Array.from(inputs).map(input => ({
+                index: input.dataset.index,
+                value: parseFloat(input.value)
+            }));
+
+            // "/send" エンドポイントにデータを送信
             fetch('/send', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/octet-stream',
+                    'Content-Type': 'application/json',
                 },
-                body: new Float32Array([data])
+                body: JSON.stringify(values)
             }).then(response => response.text())
-                .then(data => {
-                    console.log('Success:', data);
+                .then(result => {
+                    console.log('Success:', result);
                 })
-                .catch((error) => {
+                .catch(error => {
                     console.error('Error:', error);
                 });
         });
 
-        // SSEを使用してサーバーからのデータを受信
-        const eventSource = new EventSource('/sse');
-        eventSource.onmessage = function (e) {
-            document.getElementById('receivedData').innerText = e.data;
-        };
+        function setupSSE() {
+            const eventSource = new EventSource('/sse');
+            eventSource.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                updateTable(data);
+            };
+        }
+
+        function updateTable(data) {
+            const table = document.querySelector('table');
+            data.forEach((item, index) => {
+                if (table.rows.length > index + 1) { // +1 for the header row
+                    const row = table.rows[index + 1];
+                    const sseCell = row.cells[3]; // 4th column for SSE data
+                    sseCell.textContent = item.someDataField;
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndDisplayData();
+            setupSSE();
+        });
+
     </script>
 </body>
 
