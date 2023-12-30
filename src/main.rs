@@ -46,23 +46,15 @@ impl SharedData {
 
 struct InitializationState {
     initialized: bool,
-    get_mhv4_data_called: bool,
 }
 
 impl InitializationState {
     fn new() -> InitializationState {
-        InitializationState {
-            initialized: false,
-            get_mhv4_data_called: false,
-        }
+        InitializationState { initialized: false }
     }
 
     fn set_initialized(&mut self) {
         self.initialized = true;
-    }
-
-    fn set_get_mhv4_data_called(&mut self) {
-        self.get_mhv4_data_called = true;
     }
 }
 
@@ -85,12 +77,13 @@ async fn initialize_serial_port(
     let mut port = port.lock().unwrap();
 
     // シリアルポートに何かしらの初期化信号を送信
-    port.write_all(b"initialization signal")?;
+    port.write_all(b"sc 0")?;
 
     // ここで応答を受け取る処理を実装
     // ...
-    // let mut response = String::new();
-    // port.read_to_string(&mut response)?;
+    let mut response = String::new();
+    port.read_to_string(&mut response)?;
+    println!("debug: {}", response);
 
     // SharedData の response を更新
     let mut shared_data = shared_data.lock().unwrap();
@@ -109,12 +102,10 @@ fn get_mhv4_data(
 ) -> impl warp::Reply {
     let mut init_state = init_state.lock().unwrap();
 
-    if !init_state.initialized || init_state.get_mhv4_data_called {
+    if !init_state.initialized {
         return warp::reply::with_status("Not available", warp::http::StatusCode::BAD_REQUEST)
             .into_response();
     }
-
-    init_state.set_get_mhv4_data_called();
 
     let shared_data = shared_data.lock().unwrap();
     let mhv4_data_array = &shared_data.mhv4_data_array;
@@ -129,7 +120,7 @@ fn get_mhv4_data(
 
 // SSEエンドポイントのハンドラ
 fn sse_handler(port: Arc<Mutex<Box<dyn SerialPort>>>) -> impl warp::Reply {
-    let interval = time::interval(Duration::from_micros(1));
+    let interval = time::interval(Duration::from_millis(10));
     let stream = IntervalStream::new(interval).map(move |_| {
         let mut port = port.lock().unwrap();
         // ここでシリアルポートからのデータを読み取り
@@ -211,5 +202,5 @@ async fn main() {
         .or(send_route)
         .or(get_mhv4_data_route);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 }

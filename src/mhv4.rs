@@ -1,14 +1,20 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct MHV4Data {
-    // ここにフィールドを定義
+    IDC: isize,
+    bus: isize,
+    dev: isize,
+    target: isize,
 }
 
 impl MHV4Data {
     pub fn new() -> MHV4Data {
         MHV4Data {
-            // 初期化処理
+            IDC: -1,
+            bus: -1,
+            dev: -1,
+            target: -1,
         }
     }
 
