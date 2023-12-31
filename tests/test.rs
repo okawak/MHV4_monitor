@@ -1,9 +1,8 @@
-use std::env;
 use std::error::Error;
 use std::io::prelude::*;
 use std::time::Duration;
 
-fn mrc_scan_result() -> Result<Vec<String>, Box<dyn Error>> {
+fn mrc_scan_result(bus: isize) -> Result<Vec<String>, Box<dyn Error>> {
     let mut port = serialport::new("/dev/ttyUSB0", 9600)
         .stop_bits(serialport::StopBits::One)
         .data_bits(serialport::DataBits::Eight)
@@ -14,7 +13,8 @@ fn mrc_scan_result() -> Result<Vec<String>, Box<dyn Error>> {
     let mut buf: Vec<u8> = vec![0; 1000];
     let mut vec: Vec<String> = Vec::new();
     println!("Write...");
-    match port.write("sc 0\r".as_bytes()) {
+    let command = format!("sc {}\r", bus);
+    match port.write(command.as_bytes()) {
         Ok(_) => std::io::stdout().flush()?,
         Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => (),
         Err(e) => eprintln!("{:?}", e),
@@ -33,18 +33,23 @@ fn mrc_scan_result() -> Result<Vec<String>, Box<dyn Error>> {
         Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => (),
         Err(e) => eprintln!("{:?}", e),
     }
-    std::thread::sleep(Duration::from_millis(1000));
     return Ok(vec);
 }
 
 #[test]
-fn argument_test() {
-    let args: Vec<String> = env::args().collect();
-    assert_eq!(args.len(), 2);
-}
-
-#[test]
 fn scan_test() {
-    let sc_result_vec = mrc_scan_result().expect("Cannot get the output");
-    assert_eq!(sc_result_vec.last().unwrap(), &String::from("mrc-1>"));
+    let sc0_result_vec = mrc_scan_result(0).expect("Cannot get the output");
+    let sc1_result_vec = mrc_scan_result(1).expect("Cannot get the output");
+
+    // result of sc 0
+    assert_eq!(sc0_result_vec.len(), 19);
+    assert_eq!(sc0_result_vec[0], String::from("sc 0"));
+    assert_eq!(sc0_result_vec[1], String::from("ID-SCAN BUS 0:"));
+    assert_eq!(sc0_result_vec[18], String::from("mrc-1>"));
+
+    // result of sc 1
+    assert_eq!(sc1_result_vec.len(), 19);
+    assert_eq!(sc1_result_vec[0], String::from("sc 1"));
+    assert_eq!(sc1_result_vec[1], String::from("ID-SCAN BUS 1:"));
+    assert_eq!(sc1_result_vec[18], String::from("mrc-1>"));
 }
