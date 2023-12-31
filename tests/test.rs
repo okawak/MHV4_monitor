@@ -4,10 +4,7 @@ use std::io::prelude::*;
 use std::time::Duration;
 
 fn mrc_scan_result() -> Result<Vec<String>, Box<dyn Error>> {
-    let args: Vec<String> = env::args().collect();
-    let port_name = &args[1];
-
-    let mut port = serialport::new(port_name, 9600)
+    let mut port = serialport::new("/dev/ttyUSB0", 9600)
         .stop_bits(serialport::StopBits::One)
         .data_bits(serialport::DataBits::Eight)
         .parity(serialport::Parity::None)
