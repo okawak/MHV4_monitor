@@ -12,7 +12,8 @@ fn mrc_scan_result(bus: isize) -> Result<Vec<String>, Box<dyn Error>> {
 
     let mut buf: Vec<u8> = vec![0; 1000];
     let mut vec: Vec<String> = Vec::new();
-    println!("Write...");
+
+    // write to the serial port
     let command = format!("sc {}\r", bus);
     match port.write(command.as_bytes()) {
         Ok(_) => std::io::stdout().flush()?,
@@ -21,13 +22,14 @@ fn mrc_scan_result(bus: isize) -> Result<Vec<String>, Box<dyn Error>> {
     }
     std::thread::sleep(Duration::from_millis(100));
 
-    println!("Read...");
+    // read from the serial port
     match port.read(buf.as_mut_slice()) {
         Ok(t) => {
             let bytes = &buf[..t];
             let string = String::from_utf8(bytes.to_vec())?;
             let v = string.split("\n\r").collect::<Vec<_>>();
             vec = v.iter().map(|&s| s.to_string()).collect();
+            println!("Scan result:");
             println!("{:?}", vec);
         }
         Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => (),

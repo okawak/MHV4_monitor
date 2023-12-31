@@ -2,19 +2,19 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct MHV4Data {
-    IDC: isize,
-    bus: isize,
-    dev: isize,
-    target: isize,
+    idc: usize,
+    bus: usize,
+    dev: usize,
+    target: usize,
 }
 
 impl MHV4Data {
-    pub fn new() -> MHV4Data {
+    pub fn new(in_idc: usize, in_bus: usize, in_dev: usize) -> MHV4Data {
         MHV4Data {
-            IDC: -1,
-            bus: -1,
-            dev: -1,
-            target: -1,
+            idc: in_idc,
+            bus: in_bus,
+            dev: in_dev,
+            target: 0,
         }
     }
 
