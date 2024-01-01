@@ -6,6 +6,7 @@ pub struct MHV4Data {
     bus: usize,
     dev: usize,
     ch: usize,
+    current: usize,
     target: usize,
 }
 
@@ -16,6 +17,7 @@ impl MHV4Data {
             bus: in_bus,
             dev: in_dev,
             ch: in_ch,
+            current: 0,
             target: 0,
         }
     }

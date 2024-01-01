@@ -51,18 +51,19 @@
 
             // 入力フィールドの追加
             const obj = JSON.parse(data);
-            obj.forEach(mod => {
+            obj.forEach((mod, index) => {
                 const row = document.createElement('tr');
                 row.appendChild[createCell(mod.bus)]; // MHV4Dataに依存
                 row.appendChild[createCell(mod.dev)]; // MHV4Dataに依存 2列目
                 row.appendChild[createCell(mod.ch)];  // MHV4Dataに依存 2列目
+                console.log(mod.bus, mod.dev, mod.ch);
 
                 // input field
                 const inputCell = document.createElement('td'); // 4列目に入力フィールドを追加
                 const input = document.createElement('input');
                 input.type = 'number';
-                input.value = mod.target; //!!!!!! 既存の値をセット
-                input.dataset.index = index; // 行のインデックスをデータ属性として追加
+                input.value = (mod.current) * 0.1; // 既存の値をセット
+                //input.dataset.index = index; // 行のインデックスをデータ属性として追加
                 inputCell.appendChild(input);
                 row.appendChild(inputCell);
 
@@ -71,46 +72,6 @@
 
                 tbody.appendChild(row);
             });
-            //for (let i = 0; i < obj.length; i++) {
-            //    const row = document.createElement('tr');
-            //    //const row = tbody.rows[index];
-            //    row.appendChild[createCell(item.field1)]; // MHV4Dataに依存
-            //    row.appendChild[createCell(item.field2)]; // MHV4Dataに依存 2列目
-
-            //    // input field
-            //    const inputCell = document.createElement('td'); // 3列目に入力フィールドを追加
-            //    const input = document.createElement('input');
-            //    input.type = 'number';
-            //    input.value = item.inputValue; // 既存の値をセット
-            //    input.dataset.index = index; // 行のインデックスをデータ属性として追加
-            //    inputCell.appendChild(input);
-            //    row.appendChild(inputCell);
-
-            //    // SSE field (initially empty)
-            //    row.appendChild(createCell(''));
-
-            //    tbody.appendChild(row);
-            //}
-            //data.forEach((item, index) => {
-            //    const row = document.createElement('tr');
-            //    //const row = tbody.rows[index];
-            //    row.appendChild[createCell(item.field1)]; // MHV4Dataに依存
-            //    row.appendChild[createCell(item.field2)]; // MHV4Dataに依存 2列目
-
-            //    // input field
-            //    const inputCell = document.createElement('td'); // 3列目に入力フィールドを追加
-            //    const input = document.createElement('input');
-            //    input.type = 'number';
-            //    input.value = item.inputValue; // 既存の値をセット
-            //    input.dataset.index = index; // 行のインデックスをデータ属性として追加
-            //    inputCell.appendChild(input);
-            //    row.appendChild(inputCell);
-
-            //    // SSE field (initially empty)
-            //    row.appendChild(createCell(''));
-
-            //    tbody.appendChild(row);
-            //});
 
             table.appendChild(tbody);
             container.appendChild(table);
@@ -118,7 +79,8 @@
 
         function createCell(text) {
             const cell = document.createElement('td');
-            cell.textContent = text;
+            const celltext = document.createTextNode(text);
+            cell.appendChild(celltext);
             return cell;
         }
 
