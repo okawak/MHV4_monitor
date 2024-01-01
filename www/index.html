@@ -53,10 +53,9 @@
             const obj = JSON.parse(data);
             obj.forEach((mod, index) => {
                 const row = document.createElement('tr');
-                row.appendChild[createCell(mod.bus)]; // MHV4Dataに依存
-                row.appendChild[createCell(mod.dev)]; // MHV4Dataに依存 2列目
-                row.appendChild[createCell(mod.ch)];  // MHV4Dataに依存 2列目
-                console.log(mod.bus, mod.dev, mod.ch);
+                row.appendChild(createCell(mod.bus)); // MHV4Dataに依存
+                row.appendChild(createCell(mod.dev)); // MHV4Dataに依存 2列目
+                row.appendChild(createCell(mod.ch));  // MHV4Dataに依存 2列目
 
                 // input field
                 const inputCell = document.createElement('td'); // 4列目に入力フィールドを追加
