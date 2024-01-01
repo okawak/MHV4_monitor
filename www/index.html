@@ -52,7 +52,24 @@
             // 入力フィールドの追加
             const obj = JSON.parse(data);
             obj.forEach(mod => {
-                console.log(mod);
+                const row = document.createElement('tr');
+                row.appendChild[createCell(mod.bus)]; // MHV4Dataに依存
+                row.appendChild[createCell(mod.dev)]; // MHV4Dataに依存 2列目
+                row.appendChild[createCell(mod.ch)];  // MHV4Dataに依存 2列目
+
+                // input field
+                const inputCell = document.createElement('td'); // 4列目に入力フィールドを追加
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = mod.target; //!!!!!! 既存の値をセット
+                input.dataset.index = index; // 行のインデックスをデータ属性として追加
+                inputCell.appendChild(input);
+                row.appendChild(inputCell);
+
+                // SSE field (initially empty)
+                row.appendChild(createCell(''));
+
+                tbody.appendChild(row);
             });
             //for (let i = 0; i < obj.length; i++) {
             //    const row = document.createElement('tr');
