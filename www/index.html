@@ -3,18 +3,23 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Serial Port Communication</title>
+    <title>MHV4 monitor</title>
 </head>
 
 <body>
-    <h1>Serial Port Communication</h1>
+    <h1>MHV4 monitor</h1>
 
-    <!-- 表を表示するためのコンテナ -->
     <div id="TableContainer"></div>
-    <!-- Apply ボタン -->
     <button id="applyButton">Apply</button>
 
     <script>
+        const table_title = ["bus", "dev", "ch", "input (V)", "Voltage (V)", "Current (uA)", "about"];
+        // user definition
+        // NOTE: please be careful of the array size
+        const mhv4_discription = ["-", "-", "-", "-",
+            "-", "-", "-", "-"];
+        // user definition end
+
         async function DisplayData() {
             try {
                 const response = await fetch("/mhv4_data");
@@ -28,17 +33,14 @@
             }
         }
 
-        // 表を生成する関数
         function createTable(data) {
             const container = document.getElementById('TableContainer');
             const table = document.createElement('table');
             table.setAttribute('border', '1');
 
-            // テーブルヘッダーを生成（MHV4Dataのフィールドに基づく）
             const thead = document.createElement('thead');
             const headerRow = document.createElement('tr');
-            // 例: フィールド名を列として追加
-            ['bus', 'dev', 'ch', 'InputField', 'SSEField'].forEach(field => {
+            table_title.forEach(field => {
                 const th = document.createElement('th');
                 th.textContent = field;
                 headerRow.appendChild(th);
@@ -46,28 +48,30 @@
             thead.appendChild(headerRow);
             table.appendChild(thead);
 
-            // テーブルデータを生成
+            // table data
             const tbody = document.createElement('tbody');
-
-            // 入力フィールドの追加
             const obj = JSON.parse(data);
             obj.forEach((mod, index) => {
                 const row = document.createElement('tr');
-                row.appendChild(createCell(mod.bus)); // MHV4Dataに依存
-                row.appendChild(createCell(mod.dev)); // MHV4Dataに依存 2列目
-                row.appendChild(createCell(mod.ch));  // MHV4Dataに依存 2列目
+                row.appendChild(createCell(mod.bus));
+                row.appendChild(createCell(mod.dev));
+                row.appendChild(createCell(mod.ch));
 
                 // input field
-                const inputCell = document.createElement('td'); // 4列目に入力フィールドを追加
+                const inputCell = document.createElement('td');
                 const input = document.createElement('input');
                 input.type = 'number';
-                input.value = (mod.current) * 0.1; // 既存の値をセット
-                //input.dataset.index = index; // 行のインデックスをデータ属性として追加
+                input.value = (mod.current) * 0.1;
+                input.step = 0.1;
+                input.min = 0;
                 inputCell.appendChild(input);
                 row.appendChild(inputCell);
 
                 // SSE field (initially empty)
                 row.appendChild(createCell(''));
+                row.appendChild(createCell(''));
+
+                row.appendChild(createCell(mhv4_discription[index]));
 
                 tbody.appendChild(row);
             });
