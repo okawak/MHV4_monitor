@@ -122,7 +122,7 @@ fn sse_handler(
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
     }
 
-    let interval = time::interval(Duration::from_millis(100));
+    let interval = time::interval(Duration::from_millis(200));
     let stream = IntervalStream::new(interval).map(move |_| {
         let mut v_array: Vec<usize> = Vec::new();
         let mut c_array: Vec<usize> = Vec::new();
@@ -134,7 +134,7 @@ fn sse_handler(
             let ch = mhv4_data_array[i].get_ch();
             let command = format!("re {} {} {}\r", bus, dev, ch + 32);
             port.write(command.as_bytes()).expect("Write failed!");
-            std::thread::sleep(Duration::from_millis(10));
+            std::thread::sleep(Duration::from_millis(30));
 
             let mut v_buf: Vec<u8> = vec![0; 100];
             let size = port.read(v_buf.as_mut_slice()).expect("Found no data!");
@@ -148,7 +148,7 @@ fn sse_handler(
 
             let command = format!("re {} {} {}\r", bus, dev, ch + 50);
             port.write(command.as_bytes()).expect("Write failed!");
-            std::thread::sleep(Duration::from_millis(10));
+            std::thread::sleep(Duration::from_millis(30));
 
             let mut c_buf: Vec<u8> = vec![0; 100];
             let size = port.read(c_buf.as_mut_slice()).expect("Found no data!");
