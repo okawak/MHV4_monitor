@@ -144,7 +144,15 @@ fn sse_handler(
 
             let v_datas = read_value[1].split_whitespace().collect::<Vec<_>>();
             let voltage = v_datas.last().unwrap().to_string();
-            v_array.push(voltage.parse().unwrap());
+            match voltage.parse::<isize>() {
+                Ok(num) => {
+                    v_array.push(num);
+                }
+                Err(_) => {
+                    v_array.push(-1000);
+                    continue;
+                }
+            }
 
             let command = format!("re {} {} {}\r", bus, dev, ch + 50);
             port.write(command.as_bytes()).expect("Write failed!");
@@ -158,7 +166,15 @@ fn sse_handler(
 
             let c_datas = read_value[1].split_whitespace().collect::<Vec<_>>();
             let current = c_datas.last().unwrap().to_string();
-            c_array.push(current.parse().unwrap());
+            match current.parse::<isize>() {
+                Ok(num) => {
+                    c_array.push(num);
+                }
+                Err(_) => {
+                    c_array.push(-1000);
+                    continue;
+                }
+            }
         }
         let data = format!("voltage: {:?}, current: {:?}", v_array, c_array);
 
