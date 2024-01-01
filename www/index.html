@@ -122,13 +122,14 @@
 
         function updateTable(data) {
             const table = document.querySelector('table');
-            data.forEach((item, index) => {
-                if (table.rows.length > index + 1) { // +1 for the header row
-                    const row = table.rows[index + 1];
-                    const sseCell = row.cells[3]; // 4th column for SSE data
-                    sseCell.textContent = item.someDataField;
-                }
-            });
+            for (let i = 0; i < table.rows.length - 1; i++) {
+                const row = table.rows[i + 1];
+                const v_cell = row.cells[4];
+                const c_cell = row.cells[5];
+
+                v_cell.textContent = data[0][i];
+                c_cell.textContent = data[1][i];
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
