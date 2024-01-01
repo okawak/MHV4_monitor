@@ -122,10 +122,10 @@ fn sse_handler(
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
     }
 
-    let interval = time::interval(Duration::from_millis(300));
+    let interval = time::interval(Duration::from_millis(200));
     let stream = IntervalStream::new(interval).map(move |_| {
-        let mut v_array: Vec<usize> = Vec::new();
-        let mut c_array: Vec<usize> = Vec::new();
+        let mut v_array: Vec<isize> = Vec::new();
+        let mut c_array: Vec<isize> = Vec::new();
         let mut port = port.lock().unwrap();
 
         for i in 0..mhv4_data_array.len() {
