@@ -21,12 +21,8 @@ use warp::Reply;
     version = env!("CARGO_PKG_VERSION"),
     author = env!("CARGO_PKG_AUTHORS"),
     about = env!("CARGO_PKG_DESCRIPTION"),
-    arg_required_else_help = true,
 )]
 struct MyArguments {
-    #[clap(short = 's', long = "start")]
-    start_server: bool,
-
     #[clap(short = 'p', long = "port_name", default_value = "/dev/ttyUSB0")]
     port_name: String,
 
@@ -49,7 +45,6 @@ impl SerialPortError {
 
 impl Reject for SerialPortError {}
 
-// 共有データ構造体
 struct SharedData {
     mhv4_data_array: Vec<MHV4Data>,
 }
@@ -62,23 +57,8 @@ impl SharedData {
     }
 }
 
-struct InitializationState {
-    initialized: bool,
-}
-
-impl InitializationState {
-    fn new() -> InitializationState {
-        InitializationState { initialized: false }
-    }
-
-    fn set_initialized(&mut self) {
-        self.initialized = true;
-    }
-}
-
 async fn initialize_serial_port(
     port: Arc<Mutex<Box<dyn SerialPort>>>,
-    init_state: Arc<Mutex<InitializationState>>,
     shared_data: Arc<Mutex<SharedData>>,
 ) -> Result<(), io::Error> {
     let mut port = port.lock().unwrap();
@@ -97,21 +77,19 @@ async fn initialize_serial_port(
         let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
         let modules = string.split("\n\r").collect::<Vec<_>>();
 
-        for j in 0..16 {
-            let module = modules[j + 2].to_string();
+        for dev in 0..16 {
+            let module = modules[dev + 2].to_string();
             let datas = module.split_whitespace().collect::<Vec<_>>();
             if datas[1] == "-" {
                 continue;
             }
 
-            let idc: usize = (&datas[1][..2]).parse().unwrap();
+            let mut idc_str = datas[1].to_string();
+            idc_str.pop();
+            let idc: usize = idc_str.parse().unwrap();
             if idc != 27 || idc != 17 {
                 continue;
             }
-
-            let mut tmp = datas[0].to_string();
-            tmp.pop();
-            let dev: usize = tmp.parse().unwrap();
 
             shared_data
                 .mhv4_data_array
@@ -119,30 +97,20 @@ async fn initialize_serial_port(
         }
     }
 
-    let mut init_state = init_state.lock().unwrap();
-    init_state.set_initialized();
-
+    for i in 0..shared_data.mhv4_data_array.len() {
+        println!("index: {}", i);
+    }
     Ok(())
 }
 
 // mhv4_data_array の情報を取得するエンドポイント
-fn get_mhv4_data(
-    shared_data: Arc<Mutex<SharedData>>,
-    init_state: Arc<Mutex<InitializationState>>,
-) -> impl warp::Reply {
-    let init_state = init_state.lock().unwrap();
-
-    if !init_state.initialized {
-        std::thread::sleep(Duration::from_millis(100));
-        return warp::reply::with_status("Not available", warp::http::StatusCode::BAD_REQUEST)
-            .into_response();
-    }
-
+fn get_mhv4_data(shared_data: Arc<Mutex<SharedData>>) -> impl warp::Reply {
     let shared_data = shared_data.lock().unwrap();
     let mhv4_data_array = &shared_data.mhv4_data_array;
 
     let data_json = serde_json::to_string(mhv4_data_array).unwrap_or_else(|_| "[]".to_string());
 
+    println!("{:?}", data_json);
     warp::reply::json(&data_json).into_response()
 }
 
@@ -200,10 +168,6 @@ fn send_to_serial_port(
 #[tokio::main]
 async fn main() {
     let args: MyArguments = MyArguments::parse();
-    if args.start_server {
-        println!("To start server, please add -s option");
-        std::process::exit(1);
-    }
 
     let port = serialport::new(args.port_name, args.port_rate)
         .stop_bits(serialport::StopBits::One)
@@ -215,16 +179,15 @@ async fn main() {
 
     let port = Arc::new(Mutex::new(port));
     let shared_data = Arc::new(Mutex::new(SharedData::new()));
-    let init_state = Arc::new(Mutex::new(InitializationState::new()));
 
     // 初期化処理の実行
-    initialize_serial_port(port.clone(), init_state.clone(), shared_data.clone())
+    initialize_serial_port(port.clone(), shared_data.clone())
         .await
         .expect("Failed to initialize serial port");
 
     let get_mhv4_data_route = warp::get()
         .and(warp::path("mhv4_data"))
-        .map(move || get_mhv4_data(shared_data.clone(), init_state.clone()));
+        .map(move || get_mhv4_data(shared_data.clone()));
 
     let port_for_sse = port.clone();
     let sse_route = warp::path("sse").map(move || sse_handler(port_for_sse.clone()));
