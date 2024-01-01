@@ -115,7 +115,8 @@
             const eventSource = new EventSource('/sse');
             eventSource.onmessage = function (event) {
                 const data = JSON.parse(event.data);
-                updateTable(data);
+                console.log(data);
+                //updateTable(data);
             };
         }
 

@@ -11,7 +11,6 @@ use std::sync::{Arc, Mutex};
 use tokio::time::{self, Duration};
 use tokio_stream::wrappers::IntervalStream;
 use warp::reject::Reject;
-use warp::sse::Event;
 use warp::Filter;
 use warp::Reply;
 
@@ -176,9 +175,11 @@ fn sse_handler(
                 }
             }
         }
-        let data = format!("voltage: {:?}, current: {:?}", v_array, c_array);
 
-        Ok::<_, warp::Error>(warp::sse::Event::default().data(data))
+        let datas = (v_array, c_array);
+        let sse_json = serde_json::to_string(&datas).unwrap();
+
+        Ok::<_, warp::Error>(warp::sse::Event::default().data(sse_json))
     });
 
     warp::sse::reply(stream)
