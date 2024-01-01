@@ -91,9 +91,11 @@ async fn initialize_serial_port(
                 continue;
             }
 
-            shared_data
-                .mhv4_data_array
-                .push(MHV4Data::new(idc, bus, dev));
+            for ch in 0..4 {
+                shared_data
+                    .mhv4_data_array
+                    .push(MHV4Data::new(idc, bus, dev, ch));
+            }
         }
     }
 

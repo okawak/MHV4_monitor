@@ -5,15 +5,17 @@ pub struct MHV4Data {
     idc: usize,
     bus: usize,
     dev: usize,
+    ch: usize,
     target: usize,
 }
 
 impl MHV4Data {
-    pub fn new(in_idc: usize, in_bus: usize, in_dev: usize) -> MHV4Data {
+    pub fn new(in_idc: usize, in_bus: usize, in_dev: usize, in_ch: usize) -> MHV4Data {
         MHV4Data {
             idc: in_idc,
             bus: in_bus,
             dev: in_dev,
+            ch: in_ch,
             target: 0,
         }
     }
