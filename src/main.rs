@@ -65,7 +65,7 @@ async fn initialize_serial_port(
 
     let mut shared_data = shared_data.lock().unwrap();
 
-    for bus in 0..=1 {
+    for bus in 0..2 {
         let command = format!("sc {}\r", bus);
         port.write(command.as_bytes()).expect("Write failed!");
 
@@ -108,19 +108,57 @@ fn get_mhv4_data(shared_data: Arc<Mutex<SharedData>>) -> impl warp::Reply {
     let mhv4_data_array = &shared_data.mhv4_data_array;
 
     let data_json = serde_json::to_string(mhv4_data_array).unwrap_or_else(|_| "[]".to_string());
-
     warp::reply::json(&data_json).into_response()
 }
 
-// SSEエンドポイントのハンドラ
-fn sse_handler(port: Arc<Mutex<Box<dyn SerialPort>>>) -> impl warp::Reply {
+// SSE endpoint
+fn sse_handler(
+    port: Arc<Mutex<Box<dyn SerialPort>>>,
+    shared_data: Arc<Mutex<SharedData>>,
+) -> impl warp::Reply {
+    let mhv4_data_array: Vec<MHV4Data>;
+    {
+        let shared_data = shared_data.lock().unwrap();
+        mhv4_data_array = shared_data.mhv4_data_array.to_vec();
+    }
+
     let interval = time::interval(Duration::from_millis(100));
     let stream = IntervalStream::new(interval).map(move |_| {
+        let mut v_array: Vec<usize> = Vec::new();
+        let mut c_array: Vec<usize> = Vec::new();
         let mut port = port.lock().unwrap();
-        // ここでシリアルポートからのデータを読み取り
-        // 例: let data = port.read(...);
-        // 仮のデータを返す
-        Ok::<_, warp::Error>(Event::default().data("Some data from serial port"))
+
+        for i in 0..mhv4_data_array.len() {
+            let bus = mhv4_data_array[i].get_bus();
+            let dev = mhv4_data_array[i].get_dev();
+            let ch = mhv4_data_array[i].get_ch();
+            let command = format!("re {} {} {}\r", bus, dev, ch + 32);
+            port.write(command.as_bytes()).expect("Write failed!");
+
+            let mut v_buf: Vec<u8> = vec![0; 100];
+            let size = port.read(v_buf.as_mut_slice()).expect("Found no data!");
+            let bytes = &v_buf[..size];
+            let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
+            let read_value = string.split("\n\r").collect::<Vec<_>>();
+
+            let v_datas = read_value[1].split_whitespace().collect::<Vec<_>>();
+            v_array.push(v_datas.last().unwrap().parse().unwrap());
+
+            let command = format!("re {} {} {}\r", bus, dev, ch + 50);
+            port.write(command.as_bytes()).expect("Write failed!");
+
+            let mut c_buf: Vec<u8> = vec![0; 100];
+            let size = port.read(c_buf.as_mut_slice()).expect("Found no data!");
+            let bytes = &c_buf[..size];
+            let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
+            let read_value = string.split("\n\r").collect::<Vec<_>>();
+
+            let c_datas = read_value[1].split_whitespace().collect::<Vec<_>>();
+            c_array.push(c_datas.last().unwrap().parse().unwrap());
+        }
+        let data = format!("voltage: {:?}, current: {:?}", v_array, c_array);
+
+        Ok::<_, warp::Error>(warp::sse::Event::default().data(data))
     });
 
     warp::sse::reply(stream)
@@ -165,6 +203,8 @@ fn send_to_serial_port(
 
 #[tokio::main]
 async fn main() {
+    pretty_env_logger::init();
+
     let args: MyArguments = MyArguments::parse();
 
     let port = serialport::new(args.port_name, args.port_rate)
@@ -183,12 +223,14 @@ async fn main() {
         .await
         .expect("Failed to initialize serial port");
 
+    let shared_for_sse = shared_data.clone();
     let get_mhv4_data_route = warp::get()
         .and(warp::path("mhv4_data"))
         .map(move || get_mhv4_data(shared_data.clone()));
 
     let port_for_sse = port.clone();
-    let sse_route = warp::path("sse").map(move || sse_handler(port_for_sse.clone()));
+    let sse_route =
+        warp::path("sse").map(move || sse_handler(port_for_sse.clone(), shared_for_sse.clone()));
 
     let port_for_send = port.clone();
     let send_route = warp::post()

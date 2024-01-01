@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug, Clone, Copy)]
 pub struct MHV4Data {
     idc: usize,
     bus: usize,
@@ -20,6 +20,22 @@ impl MHV4Data {
             current: 0,
             target: 0,
         }
+    }
+
+    //pub fn get_idc(self) -> usize {
+    //    self.idc
+    //}
+
+    pub fn get_bus(self) -> usize {
+        self.bus
+    }
+
+    pub fn get_dev(self) -> usize {
+        self.dev
+    }
+
+    pub fn get_ch(self) -> usize {
+        self.ch
     }
 
     // ここに関連する関数を定義
