@@ -87,7 +87,7 @@ async fn initialize_serial_port(
             let mut idc_str = datas[1].to_string();
             idc_str.pop();
             let idc: usize = idc_str.parse().unwrap();
-            if idc != 27 || idc != 17 {
+            if idc != 27 && idc != 17 {
                 continue;
             }
 
@@ -97,9 +97,6 @@ async fn initialize_serial_port(
         }
     }
 
-    for i in 0..shared_data.mhv4_data_array.len() {
-        println!("index: {}", i);
-    }
     Ok(())
 }
 
@@ -110,7 +107,6 @@ fn get_mhv4_data(shared_data: Arc<Mutex<SharedData>>) -> impl warp::Reply {
 
     let data_json = serde_json::to_string(mhv4_data_array).unwrap_or_else(|_| "[]".to_string());
 
-    println!("{:?}", data_json);
     warp::reply::json(&data_json).into_response()
 }
 
