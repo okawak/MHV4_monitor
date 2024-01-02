@@ -26,18 +26,9 @@ impl MHV4Data {
     //    self.idc
     //}
 
-    pub fn get_bus(self) -> usize {
-        self.bus
+    pub fn get_module_id(self) -> (usize, usize, usize) {
+        (self.bus, self.dev, self.ch)
     }
-
-    pub fn get_dev(self) -> usize {
-        self.dev
-    }
-
-    pub fn get_ch(self) -> usize {
-        self.ch
-    }
-
     // ここに関連する関数を定義
     // 例:
     // pub fn some_processing(&self) {

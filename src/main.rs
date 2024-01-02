@@ -125,18 +125,24 @@ fn sse_handler(
     let stream = IntervalStream::new(interval).map(move |_| {
         let mut v_array: Vec<isize> = Vec::new();
         let mut c_array: Vec<isize> = Vec::new();
-        let mut port = port.lock().unwrap();
+        //let mut port = port.lock().unwrap();
 
         for i in 0..mhv4_data_array.len() {
-            let bus = mhv4_data_array[i].get_bus();
-            let dev = mhv4_data_array[i].get_dev();
-            let ch = mhv4_data_array[i].get_ch();
+            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("re {} {} {}\r", bus, dev, ch + 32);
-            port.write(command.as_bytes()).expect("Write failed!");
+            {
+                let mut port = port.lock().unwrap();
+                port.write(command.as_bytes()).expect("Write failed!");
+            }
             std::thread::sleep(Duration::from_millis(50));
 
             let mut v_buf: Vec<u8> = vec![0; 100];
-            let size = port.read(v_buf.as_mut_slice()).expect("Found no data!");
+            let size: usize;
+            {
+                let mut port = port.lock().unwrap();
+                //let size = port.read(v_buf.as_mut_slice()).expect("Found no data!");
+                size = port.read(v_buf.as_mut_slice()).expect("Found no data!");
+            }
             let bytes = &v_buf[..size];
             let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
             let read_value = string.split("\n\r").collect::<Vec<_>>();
@@ -154,11 +160,18 @@ fn sse_handler(
             }
 
             let command = format!("re {} {} {}\r", bus, dev, ch + 50);
-            port.write(command.as_bytes()).expect("Write failed!");
+            {
+                let mut port = port.lock().unwrap();
+                port.write(command.as_bytes()).expect("Write failed!");
+            }
             std::thread::sleep(Duration::from_millis(50));
 
             let mut c_buf: Vec<u8> = vec![0; 100];
-            let size = port.read(c_buf.as_mut_slice()).expect("Found no data!");
+            let size: usize;
+            {
+                let mut port = port.lock().unwrap();
+                size = port.read(c_buf.as_mut_slice()).expect("Found no data!");
+            }
             let bytes = &c_buf[..size];
             let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
             let read_value = string.split("\n\r").collect::<Vec<_>>();
@@ -184,6 +197,15 @@ fn sse_handler(
 
     warp::sse::reply(stream)
 }
+
+//fn port_write_and_read(
+//    port: Arc<Mutex<Box<dyn SerialPort>>>,
+//    command: String,
+//) -> Result<Vec<String>, Box<dyn Error>> {
+//    {
+//        let mut port = port.lock().unwrap();
+//    }
+//}
 
 // シリアルポートにデータを送信するハンドラ
 fn send_to_serial_port(
