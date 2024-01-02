@@ -39,8 +39,9 @@
         const table_title = ["bus", "dev", "ch", "input (V)", "Voltage (V)", "Current (uA)", "about"];
         // user definition
         // NOTE: please be careful of the array size
-        const mhv4_discription = ["-", "-", "-", "-",
-            "-", "-", "-", "-"];
+        const mhv4_discription =
+            ["tel1 Ea", "tel1 Eb", "tel1 Ec", "tel1 Ed",
+                "tel2 Ea", "tel2 Eb", "tel2 Ec", "tel2 Ed"];
         // user definition end
 
         async function DisplayData() {
@@ -176,8 +177,16 @@
                 const v_cell = row.cells[4];
                 const c_cell = row.cells[5];
 
-                v_cell.textContent = (data[0][i] * 0.1).toFixed(1);
-                c_cell.textContent = (data[1][i] * 0.001).toFixed(3);
+                if (data[0][i] < -999) {
+                    v_cell.textContent = "read error!";
+                } else {
+                    v_cell.textContent = (data[0][i] * 0.1).toFixed(1);
+                }
+                if (data[1][i] < -999) {
+                    c_cell.textContent = "read error!";
+                } else {
+                    c_cell.textContent = (data[1][i] * 0.001).toFixed(3);
+                }
             }
         }
 
