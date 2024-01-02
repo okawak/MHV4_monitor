@@ -1,6 +1,33 @@
-.circle {
-    width: 20px;
-    height: 20px;
+table,
+th,
+td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 10px;
+    text-align: center;
+}
+
+.status-circle {
+    height: 50px;
+    width: 50px;
+    background-color: #fff;
     border-radius: 50%;
-    /* need to be a circle */
+    display: inline-block;
+}
+
+.green {
+    background-color: green;
+}
+
+.red {
+    background-color: red;
+}
+
+.button-container {
+    margin-top: 20px;
+    text-align: center;
 }

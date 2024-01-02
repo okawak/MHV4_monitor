@@ -10,11 +10,28 @@
 <body>
     <h1>MHV4 monitor</h1>
 
+    <!--Status monitor-->
+    <table>
+        <tr>
+            <th>Status</th>
+        </tr>
+        <tr>
+            <td><span id="statusCircle" class="status-circle"></span></td>
+        </tr>
+    </table>
+
+    <div class="button-container">
+        <button onclick="changeStatus(true)">Set True</button>
+        <button onclick="changeStatus(false)">Set False</button>
+    </div>
+
+    <!--main-->
+    <h3>table</h3>
     <div id="TableContainer"></div>
     <button id="applyButton">Apply</button>
 
     <script>
-        const table_title = ["RC", "Power", "bus", "dev", "ch", "input (V)", "Voltage (V)", "Current (uA)", "about"];
+        const table_title = ["bus", "dev", "ch", "input (V)", "Voltage (V)", "Current (uA)", "about"];
         // user definition
         // NOTE: please be careful of the array size
         const mhv4_discription = ["-", "-", "-", "-",
@@ -54,9 +71,6 @@
             const obj = JSON.parse(data);
             obj.forEach((mod, index) => {
                 const row = document.createElement('tr');
-                row.appendChild(createColorCell(mod.is_rc));
-                row.appendChild(createColorCell(mod.is_on));
-
                 row.appendChild(createCell(mod.bus));
                 row.appendChild(createCell(mod.dev));
                 row.appendChild(createCell(mod.ch));
@@ -88,19 +102,6 @@
             const cell = document.createElement('td');
             const celltext = document.createTextNode(text);
             cell.appendChild(celltext);
-            return cell;
-        }
-
-        function createColorCell(is_on) {
-            const cell = document.createElement('td');
-            const circle = document.createElement("div");
-            circle.className = "circle";
-            if (is_on) {
-                circle.style.backgroundColor = "green";
-            } else {
-                circle.style.backgroundColor = "red";
-            }
-            cell.appendChild(circle);
             return cell;
         }
 
