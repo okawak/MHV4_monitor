@@ -53,8 +53,8 @@
             const obj = JSON.parse(data);
             obj.forEach((mod, index) => {
                 const row = document.createElement('tr');
-                row.appendChild(createCell(""));
-                row.appendChild(createCell(""));
+                row.appendChild(createColorCell(mod.is_rc));
+                row.appendChild(createColorCell(mod.is_on));
 
                 row.appendChild(createCell(mod.bus));
                 row.appendChild(createCell(mod.dev));
@@ -87,6 +87,16 @@
             const cell = document.createElement('td');
             const celltext = document.createTextNode(text);
             cell.appendChild(celltext);
+            return cell;
+        }
+
+        function createColorCell(is_on) {
+            const cell = document.createElement('td');
+            if (is_on) {
+                cell.style.backgroundColor = "green";
+            } else {
+                cell.style.backgroundColor = "red";
+            }
             return cell;
         }
 
