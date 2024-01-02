@@ -120,39 +120,39 @@ fn sse_handler(
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
     }
 
-    let interval = time::interval(Duration::from_millis(200));
+    let interval = time::interval(Duration::from_millis(1000));
     let stream = IntervalStream::new(interval).map(move |_| {
-        //let mut v_array: Vec<isize> = Vec::new();
-        //let mut c_array: Vec<isize> = Vec::new();
+        let mut v_array: Vec<isize> = Vec::new();
+        let mut c_array: Vec<isize> = Vec::new();
 
-        //for i in 0..mhv4_data_array.len() {
-        //    let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+        for i in 0..mhv4_data_array.len() {
+            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
 
-        //    let command = format!("re {} {} {}\r", bus, dev, ch + 32);
-        //    let read_array =
-        //        port_write_and_read(port.clone(), command).expect("Error in port communication");
-        //    if read_array.len() != 3 {
-        //        v_array.push(-1000);
-        //    } else {
-        //        let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-        //        let voltage = datas.last().unwrap().to_string();
-        //        v_array.push(voltage.parse().unwrap());
-        //    }
+            let command = format!("re {} {} {}\r", bus, dev, ch + 32);
+            let read_array =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
+            if read_array.len() != 3 {
+                v_array.push(-1000);
+            } else {
+                let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+                let voltage = datas.last().unwrap().to_string();
+                v_array.push(voltage.parse().unwrap());
+            }
 
-        //    let command = format!("re {} {} {}\r", bus, dev, ch + 50);
-        //    let read_array =
-        //        port_write_and_read(port.clone(), command).expect("Error in port communication");
-        //    if read_array.len() != 3 {
-        //        c_array.push(-1000);
-        //    } else {
-        //        let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-        //        let current = datas.last().unwrap().to_string();
-        //        c_array.push(current.parse().unwrap());
-        //    }
-        //}
+            let command = format!("re {} {} {}\r", bus, dev, ch + 50);
+            let read_array =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
+            if read_array.len() != 3 {
+                c_array.push(-1000);
+            } else {
+                let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+                let current = datas.last().unwrap().to_string();
+                c_array.push(current.parse().unwrap());
+            }
+        }
 
-        //let datas = (v_array, c_array);
-        let datas = (vec![0; 8], vec![0; 8]);
+        let datas = (v_array, c_array);
+        //let datas = (vec![0; 8], vec![0; 8]);
         let sse_json = serde_json::to_string(&datas).unwrap();
 
         Ok::<_, warp::Error>(warp::sse::Event::default().data(sse_json))
