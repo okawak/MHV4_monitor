@@ -11,11 +11,20 @@
     <h1>MHV4 monitor</h1>
 
     <!--Status monitor-->
-    <span id="statusCircle" class="status-circle"></span>
+    <div class="status-container">
+        <span id="statusCircle1" class="status-circle"></span>
+        <div class="button-container">
+            <button>On</button>
+            <button>Off</button>
+        </div>
+    </div>
 
-    <div class="button-container">
-        <button onclick="changeStatus(true)">Set True</button>
-        <button onclick="changeStatus(false)">Set False</button>
+    <div class="status-container">
+        <span id="statusCircle2" class="status-circle"></span>
+        <div class="button-container">
+            <button>On</button>
+            <button>Off</button>
+        </div>
     </div>
 
     <!--main-->
@@ -47,7 +56,19 @@
 
         function setStatus(data) {
             const obj = JSON.parse(data);
-            console.log(obj[0].is_on);
+            const circle1 = document.getElementById('statusCircle1');
+            if (obj[0].is_rc) {
+                circle1.className = 'status-circle green';
+            } else {
+                circle1.className = 'status-circle red';
+            }
+
+            const circle2 = document.getElementById('statusCircle2');
+            if (obj[0].is_on) {
+                circle2.className = 'status-circle green';
+            } else {
+                circle2.className = 'status-circle red';
+            }
         }
 
         function createTable(data) {
