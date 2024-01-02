@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="custom.css">
     <title>MHV4 monitor</title>
 </head>
 
@@ -92,11 +93,14 @@
 
         function createColorCell(is_on) {
             const cell = document.createElement('td');
+            const circle = document.createElement("div");
+            circle.className = "circle";
             if (is_on) {
-                cell.style.backgroundColor = "green";
+                circle.style.backgroundColor = "green";
             } else {
-                cell.style.backgroundColor = "red";
+                circle.style.backgroundColor = "red";
             }
+            cell.appendChild(circle);
             return cell;
         }
 
