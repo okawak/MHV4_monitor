@@ -8,6 +8,8 @@ pub struct MHV4Data {
     ch: usize,
     current: usize,
     target: usize,
+    is_on: bool,
+    is_rc: bool,
 }
 
 impl MHV4Data {
@@ -19,6 +21,8 @@ impl MHV4Data {
             ch: in_ch,
             current: 0,
             target: 0,
+            is_on: false,
+            is_rc: false,
         }
     }
 
