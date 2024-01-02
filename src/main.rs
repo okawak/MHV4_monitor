@@ -129,26 +129,12 @@ fn sse_handler(
 
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+
             let command = format!("re {} {} {}\r", bus, dev, ch + 32);
-            {
-                let mut port = port.lock().unwrap();
-                port.write(command.as_bytes()).expect("Write failed!");
-            }
-            std::thread::sleep(Duration::from_millis(50));
-
-            let mut v_buf: Vec<u8> = vec![0; 100];
-            let size: usize;
-            {
-                let mut port = port.lock().unwrap();
-                //let size = port.read(v_buf.as_mut_slice()).expect("Found no data!");
-                size = port.read(v_buf.as_mut_slice()).expect("Found no data!");
-            }
-            let bytes = &v_buf[..size];
-            let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
-            let read_value = string.split("\n\r").collect::<Vec<_>>();
-
-            let v_datas = read_value[1].split_whitespace().collect::<Vec<_>>();
-            let voltage = v_datas.last().unwrap().to_string();
+            let read_array =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
+            let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+            let voltage = datas.last().unwrap().to_string();
             match voltage.parse::<isize>() {
                 Ok(num) => {
                     v_array.push(num);
@@ -160,24 +146,10 @@ fn sse_handler(
             }
 
             let command = format!("re {} {} {}\r", bus, dev, ch + 50);
-            {
-                let mut port = port.lock().unwrap();
-                port.write(command.as_bytes()).expect("Write failed!");
-            }
-            std::thread::sleep(Duration::from_millis(50));
-
-            let mut c_buf: Vec<u8> = vec![0; 100];
-            let size: usize;
-            {
-                let mut port = port.lock().unwrap();
-                size = port.read(c_buf.as_mut_slice()).expect("Found no data!");
-            }
-            let bytes = &c_buf[..size];
-            let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
-            let read_value = string.split("\n\r").collect::<Vec<_>>();
-
-            let c_datas = read_value[1].split_whitespace().collect::<Vec<_>>();
-            let current = c_datas.last().unwrap().to_string();
+            let read_array =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
+            let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+            let current = datas.last().unwrap().to_string();
             match current.parse::<isize>() {
                 Ok(num) => {
                     c_array.push(num);
@@ -198,15 +170,38 @@ fn sse_handler(
     warp::sse::reply(stream)
 }
 
-//fn port_write_and_read(
-//    port: Arc<Mutex<Box<dyn SerialPort>>>,
-//    command: String,
-//) -> Result<Vec<String>, Box<dyn Error>> {
-//    {
-//        let mut port = port.lock().unwrap();
-//    }
-//}
+fn port_write_and_read(
+    port: Arc<Mutex<Box<dyn SerialPort>>>,
+    command: String,
+) -> Result<Vec<String>, io::Error> {
+    {
+        let mut port = port.lock().unwrap();
+        port.write(command.as_bytes()).expect("Write failed!");
+    }
+    std::thread::sleep(Duration::from_millis(50));
 
+    let mut v_buf: Vec<u8> = vec![0; 100];
+    let size: usize;
+    {
+        let mut port = port.lock().unwrap();
+        size = port.read(v_buf.as_mut_slice()).expect("Found no data!");
+    }
+    let bytes = &v_buf[..size];
+    let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
+    let read_array = string.split("\n\r").collect::<Vec<_>>();
+    let vec = read_array.iter().map(|&s| s.to_string()).collect();
+
+    Ok(vec)
+}
+
+fn port_write(port: Arc<Mutex<Box<dyn SerialPort>>>, command: String) -> Result<(), io::Error> {
+    {
+        let mut port = port.lock().unwrap();
+        port.write(command.as_bytes()).expect("Write failed!");
+    }
+    std::thread::sleep(Duration::from_millis(50));
+    Ok(())
+}
 // シリアルポートにデータを送信するハンドラ
 fn send_to_serial_port(
     data: String,
