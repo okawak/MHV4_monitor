@@ -13,7 +13,7 @@
     <button id="applyButton">Apply</button>
 
     <script>
-        const table_title = ["bus", "dev", "ch", "input (V)", "Voltage (V)", "Current (uA)", "about"];
+        const table_title = ["RC", "Power", "bus", "dev", "ch", "input (V)", "Voltage (V)", "Current (uA)", "about"];
         // user definition
         // NOTE: please be careful of the array size
         const mhv4_discription = ["-", "-", "-", "-",
@@ -53,6 +53,9 @@
             const obj = JSON.parse(data);
             obj.forEach((mod, index) => {
                 const row = document.createElement('tr');
+                row.appendChild(createCell(""));
+                row.appendChild(createCell(""));
+
                 row.appendChild(createCell(mod.bus));
                 row.appendChild(createCell(mod.dev));
                 row.appendChild(createCell(mod.ch));
@@ -132,11 +135,11 @@
             const table = document.querySelector('table');
             for (let i = 0; i < table.rows.length - 1; i++) {
                 const row = table.rows[i + 1];
-                const v_cell = row.cells[4];
-                const c_cell = row.cells[5];
+                const v_cell = row.cells[6];
+                const c_cell = row.cells[7];
 
-                v_cell.textContent = data[0][i];
-                c_cell.textContent = data[1][i];
+                v_cell.textContent = (data[0][i] * 0.1).toFixed(1);
+                c_cell.textContent = (data[1][i] * 0.001).toFixed(3);
             }
         }
 

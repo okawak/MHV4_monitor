@@ -27,6 +27,9 @@ struct MyArguments {
 
     #[clap(short = 'r', long = "port_rate", default_value = "9600")]
     port_rate: u32,
+
+    #[clap(short = 'i', long = "sse_interval_ms", default_value = "1000")]
+    sse_interval: u64,
 }
 
 #[derive(Debug)]
@@ -113,6 +116,7 @@ fn get_mhv4_data(shared_data: Arc<Mutex<SharedData>>) -> impl warp::Reply {
 fn sse_handler(
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     shared_data: Arc<Mutex<SharedData>>,
+    sse_interval: u64,
 ) -> impl warp::Reply {
     let mhv4_data_array: Vec<MHV4Data>;
     {
@@ -120,7 +124,7 @@ fn sse_handler(
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
     }
 
-    let interval = time::interval(Duration::from_millis(1000));
+    let interval = time::interval(Duration::from_millis(sse_interval));
     let stream = IntervalStream::new(interval).map(move |_| {
         let mut v_array: Vec<isize> = Vec::new();
         let mut c_array: Vec<isize> = Vec::new();
@@ -152,7 +156,6 @@ fn sse_handler(
         }
 
         let datas = (v_array, c_array);
-        //let datas = (vec![0; 8], vec![0; 8]);
         let sse_json = serde_json::to_string(&datas).unwrap();
 
         Ok::<_, warp::Error>(warp::sse::Event::default().data(sse_json))
@@ -258,8 +261,13 @@ async fn main() {
         .map(move || get_mhv4_data(shared_data.clone()));
 
     let port_for_sse = port.clone();
-    let sse_route =
-        warp::path("sse").map(move || sse_handler(port_for_sse.clone(), shared_for_sse.clone()));
+    let sse_route = warp::path("sse").map(move || {
+        sse_handler(
+            port_for_sse.clone(),
+            shared_for_sse.clone(),
+            args.sse_interval,
+        )
+    });
 
     let port_for_send = port.clone();
     let send_route = warp::post()
