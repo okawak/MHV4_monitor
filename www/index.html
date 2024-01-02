@@ -113,9 +113,16 @@
 
         function setupSSE() {
             const eventSource = new EventSource('/sse');
+            eventSource.onopen = function (event) {
+                console.log("SSE connection opened:", event);
+            };
             eventSource.onmessage = function (event) {
+                console.log("SSE message received:", event);
                 const data = JSON.parse(event.data);
                 updateTable(data);
+            };
+            eventSource.onerror = function (error) {
+                console.error("SSE connection opened:", error);
             };
         }
 
