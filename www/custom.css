@@ -1,7 +1,7 @@
 .status-container {
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
+    margin-right: 40px;
 }
 
 .status-circle {
@@ -23,5 +23,8 @@
 .button-container {
     display: flex;
     flex-direction: column;
-    margin-right: 20px;
+}
+
+.main-container {
+    display: flex;
 }
