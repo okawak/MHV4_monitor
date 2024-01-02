@@ -38,10 +38,16 @@
                     throw new Error("failed to fetch the MHV4 data");
                 }
                 const data = await response.json();
+                setStatus(data);
                 createTable(data);
             } catch (error) {
                 console.error("Error:", error);
             }
+        }
+
+        function setStatus(data) {
+            const obj = JSON.parse(data);
+            console.log(obj[0].is_on);
         }
 
         function createTable(data) {
@@ -143,8 +149,8 @@
             const table = document.querySelector('table');
             for (let i = 0; i < table.rows.length - 1; i++) {
                 const row = table.rows[i + 1];
-                const v_cell = row.cells[6];
-                const c_cell = row.cells[7];
+                const v_cell = row.cells[4];
+                const c_cell = row.cells[5];
 
                 v_cell.textContent = (data[0][i] * 0.1).toFixed(1);
                 c_cell.textContent = (data[1][i] * 0.001).toFixed(3);
