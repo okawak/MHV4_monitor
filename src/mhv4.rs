@@ -35,16 +35,15 @@ impl MHV4Data {
         }
     }
 
-    //pub fn get_idc(self) -> usize {
-    //    self.idc
-    //}
+    pub fn get_idc(self) -> usize {
+        self.idc
+    }
 
     pub fn get_module_id(self) -> (usize, usize, usize) {
         (self.bus, self.dev, self.ch)
     }
-    // ここに関連する関数を定義
-    // 例:
-    // pub fn some_processing(&self) {
-    //     // 処理内容
-    // }
+
+    pub fn get_status(self) -> (bool, bool) {
+        (self.is_on, self.is_rc)
+    }
 }
