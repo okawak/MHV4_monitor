@@ -201,34 +201,37 @@
         }
 
         async function ApplyHV() {
-            const table = document.querySelector("table");
-            table.style.border = "2px solid yellow";
-            const rows = table.querySelectorAll("tr");
-            let data = [];
-            rows.forEach((row, index) => {
-                if (index == 0) return;
-                const input = row.cells[3].querySelector("input");
-                if (isNaN(input.value) || Number(input.value) < 0) {
-                    console.error("Input Error");
-                    table.style.border = "2px solid red";
-                    return;
-                }
-                const value = parseInt(Number(input.value) * 10);
-                data.push(value);
-            });
-            console.log("send HV data", data);
+            try {
+                const table = document.querySelector("table");
+                table.style.border = "2px solid yellow";
+                const rows = table.querySelectorAll("tr");
+                let data = [];
+                rows.forEach((row, index) => {
+                    if (index == 0) return;
+                    const input = row.cells[3].querySelector("input");
+                    if (isNaN(input.value) || Number(input.value) < 0) {
+                        throw new Error("failed to fetch the MHV4 data");
+                    }
+                    const value = parseInt(Number(input.value) * 10);
+                    data.push(value);
+                });
+                console.log("send HV data", data);
 
-            const response = await fetch("/apply", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-            const result = await response.json();
-            if (result) {
-                table.style.border = "2px solid green";
-                console.log("finish HV apply");
+                const response = await fetch("/apply", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+                const result = await response.json();
+                if (result) {
+                    table.style.border = "2px solid green";
+                    console.log("finish HV apply");
+                }
+            } catch (error) {
+                table.style.border = "2px solid red";
+                console.error("Input Error:", error);
             }
         }
 
