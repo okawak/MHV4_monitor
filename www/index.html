@@ -211,6 +211,7 @@
                 data.push(cells[3].textContent);
             });
 
+            console.log("send HV data", data);
             const response = await fetch("/apply", {
                 method: 'POST',
                 headers: {
