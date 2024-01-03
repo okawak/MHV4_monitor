@@ -208,7 +208,8 @@
             rows.forEach((row, index) => {
                 if (index == 0) return;
                 const input = row.cells[3].querySelector("input");
-                data.push(input.value);
+                const value = parseInt(Number(input.value) * 10);
+                data.push(value);
             });
             console.log("send HV data", data);
 
