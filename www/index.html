@@ -207,11 +207,11 @@
             let data = [];
             rows.forEach((row, index) => {
                 if (index == 0) return;
-                const cells = row.querySelectorAll("td");
-                data.push(cells[3].textContent);
+                const input = row.cells[3].querySelector("input");
+                data.push(input.value);
             });
-
             console.log("send HV data", data);
+
             const response = await fetch("/apply", {
                 method: 'POST',
                 headers: {
