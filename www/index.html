@@ -208,6 +208,11 @@
             rows.forEach((row, index) => {
                 if (index == 0) return;
                 const input = row.cells[3].querySelector("input");
+                if (isNaN(input.value)) {
+                    console.error("Input Error");
+                    table.style.border = "2px solid red";
+                    return;
+                }
                 const value = parseInt(Number(input.value) * 10);
                 data.push(value);
             });
