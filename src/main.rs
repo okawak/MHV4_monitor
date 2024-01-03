@@ -210,66 +210,69 @@ fn set_status(
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
         (current_on, current_rc) = mhv4_data_array[0].get_status();
     }
-    if num == 0 {
-        if current_rc {
-            return true;
-        } else {
-            // remote ON
-            // if you use IDC=27 MHV4, please prepare polarity list
-            // example) 0: negative, 1: positive
-            // let mhv4_1 = [0, 0, 1, 1]; // 1ch: neg, 2ch: neg, 3ch: pos, 4ch: pos
-            for i in 0..mhv4_data_array.len() {
-                let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-                let command = format!("on {} {}\r", bus, dev);
-                port_write(port.clone(), command).expect("Error in port communication");
 
-                // current limit
-                let command = format!("se {} {} {} 2000\r", bus, dev, ch + 8);
-                port_write(port.clone(), command).expect("Error in port communication");
+    // remote ON
+    if num == 0 && !current_rc {
+        // if you use IDC=27 MHV4, please prepare polarity list
+        // example) 0: negative, 1: positive
+        // let mhv4_1 = [0, 0, 1, 1]; // 1ch: neg, 2ch: neg, 3ch: pos, 4ch: pos
+        for i in 0..mhv4_data_array.len() {
+            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+            let command = format!("on {} {}\r", bus, dev);
+            port_write(port.clone(), command).expect("Error in port communication");
 
-                // if you use IDC=27 MHV4, you can set polarity in here
-                //let idc = mhv4_data_array[i].get_idc();
-                //if idc == 27 {
-                //    let command = format!("se {} {} {} {}\r", bus, dev, ch + 14, mhv4_1[ch]);
-                //    port_write(port.clone(), command).expect("Error in port communication");
-                //}
-            }
+            // current limit
+            let command = format!("se {} {} {} 2000\r", bus, dev, ch + 8);
+            port_write(port.clone(), command).expect("Error in port communication");
+
+            // if you use IDC=27 MHV4, you can set polarity in here
+            //let idc = mhv4_data_array[i].get_idc();
+            //if idc == 27 {
+            //    let command = format!("se {} {} {} {}\r", bus, dev, ch + 14, mhv4_1[ch]);
+            //    port_write(port.clone(), command).expect("Error in port communication");
+            //}
         }
-    } else if num == 1 {
-        if !current_rc {
-            return true;
-        } else {
-            // remote OFF
-            for i in 0..mhv4_data_array.len() {
-                let (bus, dev, _) = mhv4_data_array[i].get_module_id();
-                let command = format!("off {} {}\r", bus, dev);
-                port_write(port.clone(), command).expect("Error in port communication");
-            }
+
+        {
+            let shared_data = shared_data.lock().unwrap();
+            shared_data.mhv4_data_array[0].set_status(current_on, true);
         }
-    } else if num == 2 {
-        if current_on {
-            return true;
-        } else {
-            // power ON
-            for i in 0..mhv4_data_array.len() {
-                let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-                let command = format!("se {} {} {} 1\r", bus, dev, ch + 4);
-                port_write(port.clone(), command).expect("Error in port communication");
-            }
+    // remote OFF
+    } else if num == 1 && current_rc {
+        for i in 0..mhv4_data_array.len() {
+            let (bus, dev, _) = mhv4_data_array[i].get_module_id();
+            let command = format!("off {} {}\r", bus, dev);
+            port_write(port.clone(), command).expect("Error in port communication");
         }
-    } else if num == 3 {
-        if !current_on {
-            return true;
-        } else {
-            // power OFF
-            for i in 0..mhv4_data_array.len() {
-                let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-                let command = format!("se {} {} {} 0\r", bus, dev, ch + 4);
-                port_write(port.clone(), command).expect("Error in port communication");
-            }
+
+        {
+            let shared_data = shared_data.lock().unwrap();
+            shared_data.mhv4_data_array[0].set_status(current_on, false);
         }
-    } else {
-        panic!("something wrong happen in status changer");
+    // power ON
+    } else if num == 2 && !current_on {
+        for i in 0..mhv4_data_array.len() {
+            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+            let command = format!("se {} {} {} 1\r", bus, dev, ch + 4);
+            port_write(port.clone(), command).expect("Error in port communication");
+        }
+
+        {
+            let shared_data = shared_data.lock().unwrap();
+            shared_data.mhv4_data_array[0].set_status(true, current_rc);
+        }
+    // power OFF
+    } else if num == 3 && current_on {
+        for i in 0..mhv4_data_array.len() {
+            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+            let command = format!("se {} {} {} 0\r", bus, dev, ch + 4);
+            port_write(port.clone(), command).expect("Error in port communication");
+        }
+
+        {
+            let shared_data = shared_data.lock().unwrap();
+            shared_data.mhv4_data_array[0].set_status(false, current_rc);
+        }
     }
     true
 }
