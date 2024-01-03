@@ -20,6 +20,10 @@
     background-color: red;
 }
 
+.yellow {
+    background-color: yellow;
+}
+
 .button-container {
     display: flex;
     flex-direction: column;

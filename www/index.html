@@ -189,6 +189,14 @@
 
         // 0: RC on, 1: RC off, 2: Power on, 3: Power off
         async function ChangeStatus(num) {
+            const circle1 = document.getElementById('statusCircle1');
+            const circle2 = document.getElementById('statusCircle2');
+            if (num == 0 || num == 1) {
+                circle1.className = 'status-circle yellow';
+            } else {
+                circle2.className = 'status-circle yellow';
+            }
+
             const response = await fetch("/status", {
                 method: 'POST',
                 headers: {
@@ -197,7 +205,16 @@
                 body: JSON.stringify(num),
             });
             const result = await response.json();
-            console.log('Result from Rust:', result);
+
+            if (num == 0) {
+                circle1.className = 'status-circle green';
+            } else if (num == 1) {
+                circle1.className = 'status-circle red';
+            } else if (num == 2) {
+                circle2.className = 'status-circle green';
+            } else {
+                circle2.className = 'status-circle red';
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
