@@ -10,10 +10,18 @@ pub struct MHV4Data {
     target: usize,
     is_on: bool,
     is_rc: bool,
+    is_changing: bool,
 }
 
 impl MHV4Data {
-    pub fn new(in_idc: usize, in_bus: usize, in_dev: usize, in_ch: usize) -> MHV4Data {
+    pub fn new(
+        in_idc: usize,
+        in_bus: usize,
+        in_dev: usize,
+        in_ch: usize,
+        in_is_on: bool,
+        in_is_rc: bool,
+    ) -> MHV4Data {
         MHV4Data {
             idc: in_idc,
             bus: in_bus,
@@ -21,8 +29,9 @@ impl MHV4Data {
             ch: in_ch,
             current: 0,
             target: 0,
-            is_on: false,
-            is_rc: false,
+            is_on: in_is_on,
+            is_rc: in_is_rc,
+            is_changing: false,
         }
     }
 

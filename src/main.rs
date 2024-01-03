@@ -59,22 +59,29 @@ impl SharedData {
     }
 }
 
-async fn initialize_serial_port(
+async fn initialize_status(
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     shared_data: Arc<Mutex<SharedData>>,
 ) -> Result<(), io::Error> {
-    let mut port = port.lock().unwrap();
+    //let mut port = port.lock().unwrap();
 
     let mut shared_data = shared_data.lock().unwrap();
 
     for bus in 0..2 {
         let command = format!("sc {}\r", bus);
-        port.write(command.as_bytes()).expect("Write failed!");
+        {
+            let mut port = port.lock().unwrap();
+            port.write(command.as_bytes()).expect("Write failed!");
+        }
 
         std::thread::sleep(Duration::from_millis(100));
 
         let mut buf: Vec<u8> = vec![0; 300];
-        let size = port.read(buf.as_mut_slice()).expect("Found no data!");
+        let size: usize;
+        {
+            let mut port = port.lock().unwrap();
+            size = port.read(buf.as_mut_slice()).expect("Found no data!");
+        }
         let bytes = &buf[..size];
         let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
         let modules = string.split("\n\r").collect::<Vec<_>>();
@@ -93,10 +100,34 @@ async fn initialize_serial_port(
                 continue;
             }
 
+            let power_status = datas[2].to_string();
+            let is_rc: bool;
+            if power_status == "ON" {
+                is_rc = true;
+            } else {
+                is_rc = false;
+            }
+
             for ch in 0..4 {
+                let is_on: bool;
+                let command = format!("re {} {} {}\r", bus, dev, ch + 36);
+                let read_array = port_write_and_read(port.clone(), command)
+                    .expect("Error in port communication");
+                if read_array.len() != 3 {
+                    is_on = false;
+                } else {
+                    let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+                    let status: usize = datas.last().unwrap().to_string().parse().unwrap();
+                    if status == 0 {
+                        is_on = false;
+                    } else {
+                        is_on = true;
+                    }
+                }
+
                 shared_data
                     .mhv4_data_array
-                    .push(MHV4Data::new(idc, bus, dev, ch));
+                    .push(MHV4Data::new(idc, bus, dev, ch, is_on, is_rc));
             }
         }
     }
@@ -162,6 +193,16 @@ fn sse_handler(
     });
 
     warp::sse::reply(stream)
+}
+
+// 0: RC on, 1: RC off, 2: Power on, 3: Power off
+fn set_status(
+    num: u32,
+    port: Arc<Mutex<Box<dyn SerialPort>>>,
+    shared_data: Arc<Mutex<SharedData>>,
+) -> bool {
+    println!("{}", num);
+    true
 }
 
 fn port_write_and_read(
@@ -235,10 +276,13 @@ fn send_to_serial_port(
 
 #[tokio::main]
 async fn main() {
+    // init the logger
     pretty_env_logger::init();
 
+    // argument parser
     let args: MyArguments = MyArguments::parse();
 
+    // port connection
     let port = serialport::new(args.port_name, args.port_rate)
         .stop_bits(serialport::StopBits::One)
         .data_bits(serialport::DataBits::Eight)
@@ -247,20 +291,26 @@ async fn main() {
         .open()
         .expect("Failed to open serial port");
 
+    // get Mutex key
     let port = Arc::new(Mutex::new(port));
     let shared_data = Arc::new(Mutex::new(SharedData::new()));
 
-    // 初期化処理の実行
-    initialize_serial_port(port.clone(), shared_data.clone())
+    // making clone for each route
+    let port_for_sse = port.clone();
+    let port_for_status = port.clone();
+    let port_for_send = port.clone();
+    let shared_for_sse = shared_data.clone();
+    let shared_for_status = shared_data.clone();
+
+    // main
+    initialize_status(port.clone(), shared_data.clone())
         .await
         .expect("Failed to initialize serial port");
 
-    let shared_for_sse = shared_data.clone();
     let get_mhv4_data_route = warp::get()
         .and(warp::path("mhv4_data"))
         .map(move || get_mhv4_data(shared_data.clone()));
 
-    let port_for_sse = port.clone();
     let sse_route = warp::path("sse").map(move || {
         sse_handler(
             port_for_sse.clone(),
@@ -269,7 +319,14 @@ async fn main() {
         )
     });
 
-    let port_for_send = port.clone();
+    let status_route = warp::path("status")
+        .and(warp::post())
+        .and(warp::body::json())
+        .map(move |num: u32| {
+            let result = set_status(num, port_for_status.clone(), shared_for_status.clone());
+            warp::reply::json(&result)
+        });
+
     let send_route = warp::post()
         .and(warp::path("send"))
         .and(warp::body::content_length_limit(1024 * 32))
@@ -279,9 +336,10 @@ async fn main() {
     let static_files = warp::fs::dir("www");
 
     let routes = static_files
+        .or(get_mhv4_data_route)
         .or(sse_route)
-        .or(send_route)
-        .or(get_mhv4_data_route);
+        .or(status_route)
+        .or(send_route);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 }

@@ -16,16 +16,16 @@
         <div class="status-container">
             <span id="statusCircle1" class="status-circle"></span>
             <div class="button-container">
-                <button>RC ON</button>
-                <button>RC OFF</button>
+                <button onclick="ChangeStatus(0)">RC ON</button>
+                <button onclick="ChangeStatus(1)">RC OFF</button>
             </div>
         </div>
 
         <div class="status-container">
             <span id="statusCircle2" class="status-circle"></span>
             <div class="button-container">
-                <button>Power ON</button>
-                <button>Power OFF</button>
+                <button onclick="ChangeStatus(2)">Power ON</button>
+                <button onclick="ChangeStatus(3)">Power OFF</button>
             </div>
         </div>
     </div>
@@ -37,12 +37,9 @@
 
     <script>
         const table_title = ["bus", "dev", "ch", "input (V)", "Voltage (V)", "Current (uA)", "about"];
-        // user definition
-        // NOTE: please be careful of the array size
         const mhv4_discription =
             ["tel1 Ea", "tel1 Eb", "tel1 Ec", "tel1 Ed",
                 "tel2 Ea", "tel2 Eb", "tel2 Ec", "tel2 Ed"];
-        // user definition end
 
         async function DisplayData() {
             try {
@@ -188,6 +185,19 @@
                     c_cell.textContent = (data[1][i] * 0.001).toFixed(3);
                 }
             }
+        }
+
+        // 0: RC on, 1: RC off, 2: Power on, 3: Power off
+        async function ChangeStatus(num) {
+            const response = await fetch("/status", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(num),
+            });
+            const result = await response.json();
+            console.log('Result from Rust:', result);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
