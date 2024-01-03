@@ -19,6 +19,7 @@ impl MHV4Data {
         in_bus: usize,
         in_dev: usize,
         in_ch: usize,
+        in_current: usize,
         in_is_on: bool,
         in_is_rc: bool,
     ) -> MHV4Data {
@@ -27,7 +28,7 @@ impl MHV4Data {
             bus: in_bus,
             dev: in_dev,
             ch: in_ch,
-            current: 0,
+            current: in_current,
             target: 0,
             is_on: in_is_on,
             is_rc: in_is_rc,

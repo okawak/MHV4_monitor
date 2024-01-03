@@ -33,7 +33,7 @@
     <!--main-->
     <h2>Table</h2>
     <div id="TableContainer"></div>
-    <button id="applyButton">Apply</button>
+    <button id="applyButton" onclick="ApplyHV()">Apply</button>
 
     <script>
         const table_title = ["bus", "dev", "ch", "input (V)", "Voltage (V)", "Current (uA)", "about"];
@@ -127,30 +127,6 @@
             return cell;
         }
 
-        // Apply ボタンのイベントハンドラ
-        document.getElementById('applyButton').addEventListener('click', () => {
-            const inputs = document.querySelectorAll('table input[type="number"]');
-            const values = Array.from(inputs).map(input => ({
-                index: input.dataset.index,
-                value: parseFloat(input.value)
-            }));
-
-            // "/send" エンドポイントにデータを送信
-            fetch('/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(values)
-            }).then(response => response.text())
-                .then(result => {
-                    console.log('Success:', result);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-        });
-
         function setupSSE() {
             var index = 0;
             const eventSource = new EventSource('/sse');
@@ -206,15 +182,43 @@
                 body: JSON.stringify(num),
             });
             const result = await response.json();
+            if (result) {
+                if (num == 0) {
+                    console.log("set RC ON");
+                    circle1.className = 'status-circle green';
+                } else if (num == 1) {
+                    console.log("set RC OFF");
+                    circle1.className = 'status-circle red';
+                } else if (num == 2) {
+                    console.log("set Power ON");
+                    circle2.className = 'status-circle green';
+                } else {
+                    console.log("set Power OFF");
+                    circle2.className = 'status-circle red';
+                }
+            }
+        }
 
-            if (num == 0) {
-                circle1.className = 'status-circle green';
-            } else if (num == 1) {
-                circle1.className = 'status-circle red';
-            } else if (num == 2) {
-                circle2.className = 'status-circle green';
-            } else {
-                circle2.className = 'status-circle red';
+        async function ApplyHV() {
+            const table = document.querySelector("table");
+            const rows = table.querySelectorAll("tr");
+            let data = [];
+            rows.forEach((row, index) => {
+                if (index == 0) return;
+                const cells = row.querySelectorAll("td");
+                data.push(cells[3].textContent);
+            });
+
+            const response = await fetch("/apply", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+            const result = await response.json();
+            if (result) {
+                console.log("finish HV apply");
             }
         }
 

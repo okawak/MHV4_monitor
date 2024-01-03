@@ -1,17 +1,14 @@
 mod mhv4;
 
 use clap::Parser;
-use futures::{Future, StreamExt};
+use futures::StreamExt;
 use mhv4::MHV4Data;
 use serialport::SerialPort;
 use std::env;
 use std::io::{self, Read, Write};
-use std::pin::Pin;
 use std::sync::{Arc, Mutex};
-use std::thread::panicking;
 use tokio::time::{self, Duration};
 use tokio_stream::wrappers::IntervalStream;
-use warp::reject::Reject;
 use warp::Filter;
 use warp::Reply;
 
@@ -32,22 +29,6 @@ struct MyArguments {
     #[clap(short = 'i', long = "sse_interval_ms", default_value = "1000")]
     sse_interval: u64,
 }
-
-#[derive(Debug)]
-struct SerialPortError {
-    message: String,
-}
-
-impl SerialPortError {
-    fn new(message: &str) -> SerialPortError {
-        SerialPortError {
-            message: message.to_string(),
-        }
-    }
-}
-
-impl Reject for SerialPortError {}
-
 struct SharedData {
     mhv4_data_array: Vec<MHV4Data>,
 }
@@ -64,8 +45,6 @@ async fn initialize_status(
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     shared_data: Arc<Mutex<SharedData>>,
 ) -> Result<(), io::Error> {
-    //let mut port = port.lock().unwrap();
-
     let mut shared_data = shared_data.lock().unwrap();
 
     for bus in 0..2 {
@@ -126,9 +105,31 @@ async fn initialize_status(
                     }
                 }
 
+                // read current HV
+                let mut tmp: usize = 10_000;
+                let current: usize;
+                loop {
+                    let command = format!("re {} {} {}\r", bus, dev, ch + 32);
+                    let read_array = port_write_and_read(port.clone(), command)
+                        .expect("Error in port communication");
+                    if read_array.len() != 3 {
+                        continue;
+                    } else {
+                        let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+                        let voltage: usize = datas.last().unwrap().to_string().parse().unwrap();
+                        if voltage != tmp {
+                            tmp = voltage;
+                            continue;
+                        } else {
+                            current = voltage;
+                            break;
+                        }
+                    }
+                }
+
                 shared_data
                     .mhv4_data_array
-                    .push(MHV4Data::new(idc, bus, dev, ch, is_on, is_rc));
+                    .push(MHV4Data::new(idc, bus, dev, ch, current, is_on, is_rc));
             }
         }
     }
@@ -277,6 +278,15 @@ fn set_status(
     true
 }
 
+fn set_voltage(
+    nums: Vec<u32>,
+    port: Arc<Mutex<Box<dyn SerialPort>>>,
+    shared_data: Arc<Mutex<SharedData>>,
+) -> bool {
+    println!("{:?}", nums);
+    true
+}
+
 fn port_write_and_read(
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     command: String,
@@ -309,42 +319,6 @@ fn port_write(port: Arc<Mutex<Box<dyn SerialPort>>>, command: String) -> Result<
     std::thread::sleep(Duration::from_millis(50));
     Ok(())
 }
-// シリアルポートにデータを送信するハンドラ
-fn send_to_serial_port(
-    data: String,
-    port: Arc<Mutex<Box<dyn SerialPort>>>,
-) -> Pin<Box<dyn Future<Output = Result<impl warp::Reply, warp::Rejection>> + Send>> {
-    Box::pin(async move {
-        let values: Vec<f32> = match serde_json::from_str(&data) {
-            Ok(val) => val,
-            Err(_) => {
-                return Err(warp::reject::custom(SerialPortError::new(
-                    "Invalid data format",
-                )));
-            }
-        };
-
-        let mut port = port.lock().unwrap();
-        // ここで values をシリアルポートに送信する処理を行う
-        // ...
-        //        // 何らかの処理
-        //        let processed_value = number * 2.0; // 例: 値を2倍にする
-        //
-        //        // 処理した値を文字列に変換
-        //        let string_value = processed_value.to_string();
-        //
-        //        // 文字列をシリアルポートに送信
-        //        port.write_all(string_value.as_bytes()).map_err(|e| {
-        //            eprintln!("Error sending data to serial port: {}", e);
-        //            warp::reject::custom(SerialPortError::new(&e.to_string()))
-        //        })?;
-
-        Ok(warp::reply::with_status(
-            "Data sent to serial port",
-            warp::http::StatusCode::OK,
-        ))
-    })
-}
 
 #[tokio::main]
 async fn main() {
@@ -367,12 +341,13 @@ async fn main() {
     let port = Arc::new(Mutex::new(port));
     let shared_data = Arc::new(Mutex::new(SharedData::new()));
 
-    // making clone for each route
+    // making clone for each route (because of move? I'm not sure about ownership yet...)
     let port_for_sse = port.clone();
     let port_for_status = port.clone();
-    let port_for_send = port.clone();
+    let port_for_apply = port.clone();
     let shared_for_sse = shared_data.clone();
     let shared_for_status = shared_data.clone();
+    let shared_for_apply = shared_data.clone();
 
     // main
     initialize_status(port.clone(), shared_data.clone())
@@ -399,11 +374,13 @@ async fn main() {
             warp::reply::json(&result)
         });
 
-    let send_route = warp::post()
-        .and(warp::path("send"))
-        .and(warp::body::content_length_limit(1024 * 32))
+    let apply_route = warp::path("apply")
+        .and(warp::post())
         .and(warp::body::json())
-        .and_then(move |data| send_to_serial_port(data, port_for_send.clone()));
+        .map(move |nums: Vec<u32>| {
+            let result = set_voltage(nums, port_for_apply.clone(), shared_for_apply.clone());
+            warp::reply::json(&result)
+        });
 
     let static_files = warp::fs::dir("www");
 
@@ -411,7 +388,7 @@ async fn main() {
         .or(get_mhv4_data_route)
         .or(sse_route)
         .or(status_route)
-        .or(send_route);
+        .or(apply_route);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 }
