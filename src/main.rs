@@ -106,8 +106,8 @@ async fn initialize_status(
                 }
 
                 // read current HV
-                let mut tmp: usize = 10_000;
-                let current: usize;
+                let mut tmp: isize = 10_000;
+                let current: isize;
                 loop {
                     let command = format!("re {} {} {}\r", bus, dev, ch + 32);
                     let read_array = port_write_and_read(port.clone(), command)
@@ -116,7 +116,7 @@ async fn initialize_status(
                         continue;
                     } else {
                         let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-                        let voltage: usize = datas.last().unwrap().to_string().parse().unwrap();
+                        let voltage: isize = datas.last().unwrap().to_string().parse().unwrap();
                         if voltage != tmp {
                             tmp = voltage;
                             continue;
