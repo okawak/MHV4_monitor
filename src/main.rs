@@ -234,9 +234,8 @@ fn set_status(
         }
 
         {
-            let shared_data = shared_data.lock().unwrap();
+            let mut shared_data = shared_data.lock().unwrap();
             shared_data.mhv4_data_array[0].set_status(current_on, true);
-            println!("remote on: {:?}", shared_data.mhv4_data_array[0]);
         }
     // remote OFF
     } else if num == 1 && current_rc {
@@ -247,7 +246,7 @@ fn set_status(
         }
 
         {
-            let shared_data = shared_data.lock().unwrap();
+            let mut shared_data = shared_data.lock().unwrap();
             shared_data.mhv4_data_array[0].set_status(current_on, false);
         }
     // power ON
@@ -259,7 +258,7 @@ fn set_status(
         }
 
         {
-            let shared_data = shared_data.lock().unwrap();
+            let mut shared_data = shared_data.lock().unwrap();
             shared_data.mhv4_data_array[0].set_status(true, current_rc);
         }
     // power OFF
@@ -271,7 +270,7 @@ fn set_status(
         }
 
         {
-            let shared_data = shared_data.lock().unwrap();
+            let mut shared_data = shared_data.lock().unwrap();
             shared_data.mhv4_data_array[0].set_status(false, current_rc);
         }
     }

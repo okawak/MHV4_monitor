@@ -47,7 +47,7 @@ impl MHV4Data {
         (self.is_on, self.is_rc)
     }
 
-    pub fn set_status(mut self, in_is_on: bool, in_is_rc: bool) {
+    pub fn set_status(&mut self, in_is_on: bool, in_is_rc: bool) {
         self.is_on = in_is_on;
         self.is_rc = in_is_rc;
     }
