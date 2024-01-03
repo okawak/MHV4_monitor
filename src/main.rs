@@ -283,7 +283,12 @@ fn set_voltage(
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     shared_data: Arc<Mutex<SharedData>>,
 ) -> bool {
-    println!("{:?}", nums);
+    let mhv4_data_array: Vec<MHV4Data>;
+    {
+        let shared_data = shared_data.lock().unwrap();
+        mhv4_data_array = shared_data.mhv4_data_array.to_vec();
+    }
+
     true
 }
 
@@ -322,10 +327,10 @@ fn port_write(port: Arc<Mutex<Box<dyn SerialPort>>>, command: String) -> Result<
 
 #[tokio::main]
 async fn main() {
-    // init the logger
+    // init the logger (not inpremented)
     pretty_env_logger::init();
 
-    // argument parser
+    // argument parser using clap
     let args: MyArguments = MyArguments::parse();
 
     // port connection
