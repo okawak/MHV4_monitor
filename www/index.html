@@ -209,7 +209,7 @@
                 rows.forEach((row, index) => {
                     if (index == 0) return;
                     const input = row.cells[3].querySelector("input");
-                    if (isNaN(input.value) || Number(input.value) < 0) {
+                    if (input.value == '' || Number(input.value) < 0) {
                         throw new Error("failed to fetch the MHV4 data");
                     }
                     const value = parseInt(Number(input.value) * 10);
