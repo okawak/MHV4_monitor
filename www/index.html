@@ -48,6 +48,7 @@
                     throw new Error("failed to fetch the MHV4 data");
                 }
                 const data = await response.json();
+                console.log(data);
                 setStatus(data);
                 createTable(data);
             } catch (error) {

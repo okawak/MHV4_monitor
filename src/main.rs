@@ -236,6 +236,7 @@ fn set_status(
         {
             let shared_data = shared_data.lock().unwrap();
             shared_data.mhv4_data_array[0].set_status(current_on, true);
+            println!("remote on: {:?}", shared_data.mhv4_data_array[0]);
         }
     // remote OFF
     } else if num == 1 && current_rc {
