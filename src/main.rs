@@ -12,6 +12,10 @@ use tokio_stream::wrappers::IntervalStream;
 use warp::Filter;
 use warp::Reply;
 
+extern crate pretty_env_logger;
+#[macro_use]
+extern crate log;
+
 #[derive(Debug, Parser)]
 #[clap(
     name = env!("CARGO_PKG_NAME"),
@@ -26,7 +30,7 @@ struct MyArguments {
     #[clap(short = 'r', long = "port_rate", default_value = "9600")]
     port_rate: u32,
 
-    #[clap(short = 'i', long = "sse_interval_ms", default_value = "1000")]
+    #[clap(short = 'i', long = "sse_interval_ms", default_value = "2000")]
     sse_interval: u64,
 }
 
@@ -51,6 +55,7 @@ async fn initialize_status(
 
     for bus in 0..2 {
         let command = format!("sc {}\r", bus);
+        debug!("{}", command);
         {
             let mut port = port.lock().unwrap();
             port.write(command.as_bytes()).expect("Write failed!");
@@ -93,6 +98,7 @@ async fn initialize_status(
             for ch in 0..4 {
                 let is_on: bool;
                 let command = format!("re {} {} {}\r", bus, dev, ch + 36);
+                debug!("{}", command);
                 let read_array = port_write_and_read(port.clone(), command)
                     .expect("Error in port communication");
                 if read_array.len() != 3 {
@@ -112,6 +118,7 @@ async fn initialize_status(
                 let current: isize;
                 loop {
                     let command = format!("re {} {} {}\r", bus, dev, ch + 32);
+                    debug!("{}", command);
                     let read_array = port_write_and_read(port.clone(), command)
                         .expect("Error in port communication");
                     if read_array.len() != 3 {
@@ -168,6 +175,7 @@ fn sse_handler(
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
 
             let command = format!("re {} {} {}\r", bus, dev, ch + 32);
+            debug!("{}", command);
             let read_array =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
             if read_array.len() != 3 {
@@ -179,6 +187,7 @@ fn sse_handler(
             }
 
             let command = format!("re {} {} {}\r", bus, dev, ch + 50);
+            debug!("{}", command);
             let read_array =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
             if read_array.len() != 3 {
@@ -222,10 +231,12 @@ fn set_status(
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("on {} {}\r", bus, dev);
+            debug!("{}", command);
             port_write(port.clone(), command).expect("Error in port communication");
 
             // current limit
             let command = format!("se {} {} {} 2000\r", bus, dev, ch + 8);
+            debug!("{}", command);
             port_write(port.clone(), command).expect("Error in port communication");
 
             // if you use IDC=27 MHV4, you can set polarity in here
@@ -245,6 +256,7 @@ fn set_status(
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, _) = mhv4_data_array[i].get_module_id();
             let command = format!("off {} {}\r", bus, dev);
+            debug!("{}", command);
             port_write(port.clone(), command).expect("Error in port communication");
         }
 
@@ -257,6 +269,7 @@ fn set_status(
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("se {} {} {} 1\r", bus, dev, ch + 4);
+            debug!("{}", command);
             port_write(port.clone(), command).expect("Error in port communication");
         }
 
@@ -269,6 +282,7 @@ fn set_status(
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("se {} {} {} 0\r", bus, dev, ch + 4);
+            debug!("{}", command);
             port_write(port.clone(), command).expect("Error in port communication");
         }
 
@@ -308,16 +322,25 @@ fn set_voltage(
                 voltage_now_array[i] += 1;
                 let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
                 let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
+                debug!("{}", command);
                 port_write(port.clone(), command).expect("Error in port communication");
             } else {
                 voltage_now_array[i] -= 1;
                 let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
                 let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
+                debug!("{}", command);
                 port_write(port.clone(), command).expect("Error in port communication");
             }
         }
         if count == mhv4_data_array.len() {
             break;
+        }
+    }
+
+    {
+        let mut shared_data = shared_data.lock().unwrap();
+        for i in 0..mhv4_data_array.len() {
+            shared_data.mhv4_data_array[i].set_current(nums[i]);
         }
     }
     true
