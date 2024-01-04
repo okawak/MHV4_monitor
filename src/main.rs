@@ -319,6 +319,9 @@ fn set_voltage(
                 }
             }
         }
+        println!("{:?}", voltage_now_array);
+        println!("{:?}", nums);
+        println!("---");
 
         if count == mhv4_data_array.len() {
             break;
