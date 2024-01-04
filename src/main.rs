@@ -29,6 +29,8 @@ struct MyArguments {
     #[clap(short = 'i', long = "sse_interval_ms", default_value = "1000")]
     sse_interval: u64,
 }
+
+// MHV4 data array
 struct SharedData {
     mhv4_data_array: Vec<MHV4Data>,
 }
@@ -169,7 +171,7 @@ fn sse_handler(
             let read_array =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
             if read_array.len() != 3 {
-                v_array.push(-1000);
+                v_array.push(-100_000);
             } else {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
                 let voltage = datas.last().unwrap().to_string();
@@ -180,7 +182,7 @@ fn sse_handler(
             let read_array =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
             if read_array.len() != 3 {
-                c_array.push(-1000);
+                c_array.push(-100_000);
             } else {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
                 let current = datas.last().unwrap().to_string();
@@ -279,7 +281,7 @@ fn set_status(
 }
 
 fn set_voltage(
-    nums: Vec<u32>,
+    nums: Vec<isize>,
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     shared_data: Arc<Mutex<SharedData>>,
 ) -> bool {
@@ -289,6 +291,39 @@ fn set_voltage(
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
     }
 
+    let mut voltage_now_array: Vec<isize> =
+        mhv4_data_array.iter().map(|x| x.get_current()).collect();
+    let mut count: usize = 0;
+
+    loop {
+        for i in 0..mhv4_data_array.len() {
+            if voltage_now_array[i] == nums[i] {
+                continue;
+            } else if voltage_now_array[i] < nums[i] {
+                voltage_now_array[i] += 1;
+                let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+                let command = format!("se {} {} {} {}\r", bus, dev, ch + 4, voltage_now_array[i]);
+                port_write(port.clone(), command).expect("Error in port communication");
+
+                if voltage_now_array[i] == nums[i] {
+                    count += 1;
+                }
+            } else {
+                voltage_now_array[i] -= 1;
+                let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+                let command = format!("se {} {} {} {}\r", bus, dev, ch + 4, voltage_now_array[i]);
+                port_write(port.clone(), command).expect("Error in port communication");
+
+                if voltage_now_array[i] == nums[i] {
+                    count += 1;
+                }
+            }
+        }
+
+        if count == mhv4_data_array.len() {
+            break;
+        }
+    }
     true
 }
 
@@ -382,7 +417,7 @@ async fn main() {
     let apply_route = warp::path("apply")
         .and(warp::post())
         .and(warp::body::json())
-        .map(move |nums: Vec<u32>| {
+        .map(move |nums: Vec<isize>| {
             let result = set_voltage(nums, port_for_apply.clone(), shared_for_apply.clone());
             warp::reply::json(&result)
         });

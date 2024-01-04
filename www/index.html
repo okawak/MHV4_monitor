@@ -152,12 +152,12 @@
                 const v_cell = row.cells[4];
                 const c_cell = row.cells[5];
 
-                if (data[0][i] < -999) {
+                if (data[0][i] < -99999) {
                     v_cell.textContent = "read error!";
                 } else {
                     v_cell.textContent = (data[0][i] * 0.1).toFixed(1);
                 }
-                if (data[1][i] < -999) {
+                if (data[1][i] < -99999) {
                     c_cell.textContent = "read error!";
                 } else {
                     c_cell.textContent = (data[1][i] * 0.001).toFixed(3);

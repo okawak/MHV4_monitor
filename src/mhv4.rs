@@ -7,10 +7,8 @@ pub struct MHV4Data {
     dev: usize,
     ch: usize,
     current: isize,
-    target: isize,
     is_on: bool,
     is_rc: bool,
-    is_changing: bool,
 }
 
 impl MHV4Data {
@@ -29,10 +27,8 @@ impl MHV4Data {
             dev: in_dev,
             ch: in_ch,
             current: in_current,
-            target: 0,
             is_on: in_is_on,
             is_rc: in_is_rc,
-            is_changing: false,
         }
     }
 
@@ -46,6 +42,10 @@ impl MHV4Data {
 
     pub fn get_status(self) -> (bool, bool) {
         (self.is_on, self.is_rc)
+    }
+
+    pub fn get_current(self) -> isize {
+        self.current
     }
 
     pub fn set_status(&mut self, in_is_on: bool, in_is_rc: bool) {
