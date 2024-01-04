@@ -9,6 +9,7 @@
 
 <body>
     <h1>MHV4 monitor</h1>
+    <span id="real_time"></span>
 
     <!--Status monitor-->
     <h2>Status (Green=ON, Red=OFF, Yellow=in process)</h2>
@@ -32,6 +33,7 @@
 
     <!--main-->
     <h2>Table</h2>
+    <div id="animatedText"></div>
     <div id="TableContainer"></div>
     <button id="applyButton" onclick="ApplyHV()">Apply</button>
 
@@ -138,6 +140,7 @@
                 console.log(index, "SSE message received:", event);
                 const data = JSON.parse(event.data);
                 updateTable(data);
+                displayTextAnimation("GET");
                 index++;
             };
             eventSource.onerror = function (error) {
@@ -163,6 +166,15 @@
                     c_cell.textContent = (data[1][i] * 0.001).toFixed(3);
                 }
             }
+        }
+
+        function displayTextAnimation(text) {
+            const animatedText = document.getElementById("animatedText");
+            animatedText.innerText = text;
+            animatedText.style.opacity = 1;
+            setTimeout(() => {
+                animatedText.style.opacity = 0;
+            }, 200);
         }
 
         // 0: RC on, 1: RC off, 2: Power on, 3: Power off
@@ -239,6 +251,16 @@
             DisplayData();
             setupSSE();
         });
+
+        function Time() {
+            const realTime = new Date();
+            const hour = realTime.getHours();
+            const minutes = realTime.getMinutes();
+            const seconds = realTime.getSeconds();
+            const text = hour + ":" + minutes + ":" + seconds;
+            document.getElementById("real_time").innerHTML = text;
+        }
+        setInterval('Time()', 1000);
 
     </script>
 </body>

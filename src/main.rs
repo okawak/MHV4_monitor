@@ -28,6 +28,12 @@ struct MyArguments {
 
     #[clap(short = 'i', long = "sse_interval_ms", default_value = "1000")]
     sse_interval: u64,
+
+    #[clap(short = 's', long = "apply_hv_step", default_value = "5")] // 1 -> 0.1 V
+    voltage_step: isize,
+
+    #[clap(short = 'w', long = "waiting_time_ms", default_value = "500")]
+    waiting_time: u64,
 }
 
 // MHV4 data array
@@ -294,6 +300,8 @@ fn set_voltage(
     nums: Vec<isize>,
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     shared_data: Arc<Mutex<SharedData>>,
+    step: isize,
+    wating: u64,
 ) -> bool {
     let mhv4_data_array: Vec<MHV4Data>;
     {
@@ -314,19 +322,18 @@ fn set_voltage(
                     count += 1;
                 }
                 continue;
+            } else if (voltage_now_array[i] - nums[i]).abs() < step {
+                voltage_now_array[i] = nums[i];
             } else if voltage_now_array[i] < nums[i] {
-                voltage_now_array[i] += 1;
-                let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-                let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
-                println!("{}", command);
-                port_write(port.clone(), command).expect("Error in port communication");
+                voltage_now_array[i] += step;
             } else {
-                voltage_now_array[i] -= 1;
-                let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-                let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
-                println!("{}", command);
-                port_write(port.clone(), command).expect("Error in port communication");
+                voltage_now_array[i] -= step;
             }
+            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+            let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
+            println!("{}", command);
+            port_write(port.clone(), command).expect("Error in port communication");
+            std::thread::sleep(Duration::from_millis(wating));
         }
         if count == mhv4_data_array.len() {
             break;
@@ -350,7 +357,7 @@ fn port_write_and_read(
         let mut port = port.lock().unwrap();
         port.write(command.as_bytes()).expect("Write failed!");
     }
-    std::thread::sleep(Duration::from_millis(50));
+    std::thread::sleep(Duration::from_millis(40));
 
     let mut v_buf: Vec<u8> = vec![0; 100];
     let size: usize;
@@ -371,7 +378,7 @@ fn port_write(port: Arc<Mutex<Box<dyn SerialPort>>>, command: String) -> Result<
         let mut port = port.lock().unwrap();
         port.write(command.as_bytes()).expect("Write failed!");
     }
-    std::thread::sleep(Duration::from_millis(50));
+    std::thread::sleep(Duration::from_millis(40));
     Ok(())
 }
 
@@ -433,7 +440,13 @@ async fn main() {
         .and(warp::post())
         .and(warp::body::json())
         .map(move |nums: Vec<isize>| {
-            let result = set_voltage(nums, port_for_apply.clone(), shared_for_apply.clone());
+            let result = set_voltage(
+                nums,
+                port_for_apply.clone(),
+                shared_for_apply.clone(),
+                args.voltage_step,
+                args.waiting_time,
+            );
             warp::reply::json(&result)
         });
 
