@@ -214,10 +214,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function Time() {
     const realTime = new Date();
+    const year = realTime.getFullYear();
+    const month = realTime.getMonth() + 1;
+    const day = realTime.getDate();
     const hour = realTime.getHours();
     const minutes = realTime.getMinutes();
     const seconds = realTime.getSeconds();
-    const text = hour + ":" + minutes + ":" + seconds;
+    const text = year + "/" + month + "/" + day + " " + hour + ":" + minutes + ":" + seconds;
     document.getElementById("real_time").innerHTML = text;
 }
 setInterval('Time()', 1000);
