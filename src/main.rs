@@ -182,6 +182,7 @@ fn sse_handler(
             let read_array =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
             if read_array.len() != 3 {
+                println!("{:?}", read_array);
                 v_array.push(-100_000);
             } else {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
@@ -194,6 +195,7 @@ fn sse_handler(
             let read_array =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
             if read_array.len() != 3 {
+                println!("{:?}", read_array);
                 c_array.push(-100_000);
             } else {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
