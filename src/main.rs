@@ -294,35 +294,28 @@ fn set_voltage(
     let mut voltage_now_array: Vec<isize> =
         mhv4_data_array.iter().map(|x| x.get_current()).collect();
     let mut count: usize = 0;
+    let mut is_finish: Vec<bool> = vec![false; mhv4_data_array.len()];
 
     loop {
         for i in 0..mhv4_data_array.len() {
             if voltage_now_array[i] == nums[i] {
+                if !is_finish[i] {
+                    is_finish[i] = true;
+                    count += 1;
+                }
                 continue;
             } else if voltage_now_array[i] < nums[i] {
                 voltage_now_array[i] += 1;
                 let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
                 let command = format!("se {} {} {} {}\r", bus, dev, ch + 4, voltage_now_array[i]);
                 port_write(port.clone(), command).expect("Error in port communication");
-
-                if voltage_now_array[i] == nums[i] {
-                    count += 1;
-                }
             } else {
                 voltage_now_array[i] -= 1;
                 let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
                 let command = format!("se {} {} {} {}\r", bus, dev, ch + 4, voltage_now_array[i]);
                 port_write(port.clone(), command).expect("Error in port communication");
-
-                if voltage_now_array[i] == nums[i] {
-                    count += 1;
-                }
             }
         }
-        println!("{:?}", voltage_now_array);
-        println!("{:?}", nums);
-        println!("---");
-
         if count == mhv4_data_array.len() {
             break;
         }
