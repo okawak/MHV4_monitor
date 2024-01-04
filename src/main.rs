@@ -63,6 +63,7 @@ async fn initialize_status(
             port.write(command.as_bytes()).expect("Write failed!");
         }
 
+        std::io::stdout().flush()?;
         std::thread::sleep(Duration::from_millis(100));
 
         let mut buf: Vec<u8> = vec![0; 300];
@@ -357,6 +358,7 @@ fn port_write_and_read(
         let mut port = port.lock().unwrap();
         port.write(command.as_bytes()).expect("Write failed!");
     }
+    std::io::stdout().flush()?;
     std::thread::sleep(Duration::from_millis(40));
 
     let mut v_buf: Vec<u8> = vec![0; 100];
@@ -378,6 +380,7 @@ fn port_write(port: Arc<Mutex<Box<dyn SerialPort>>>, command: String) -> Result<
         let mut port = port.lock().unwrap();
         port.write(command.as_bytes()).expect("Write failed!");
     }
+    std::io::stdout().flush()?;
     std::thread::sleep(Duration::from_millis(40));
     Ok(())
 }
