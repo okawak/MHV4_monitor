@@ -307,12 +307,12 @@ fn set_voltage(
             } else if voltage_now_array[i] < nums[i] {
                 voltage_now_array[i] += 1;
                 let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-                let command = format!("se {} {} {} {}\r", bus, dev, ch + 4, voltage_now_array[i]);
+                let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
                 port_write(port.clone(), command).expect("Error in port communication");
             } else {
                 voltage_now_array[i] -= 1;
                 let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-                let command = format!("se {} {} {} {}\r", bus, dev, ch + 4, voltage_now_array[i]);
+                let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
                 port_write(port.clone(), command).expect("Error in port communication");
             }
         }
