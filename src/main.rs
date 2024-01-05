@@ -7,6 +7,7 @@ use serialport::SerialPort;
 use std::env;
 use std::io::{self, Read, Write};
 use std::sync::{Arc, Mutex};
+use std::thread;
 use tokio::time::{self, Duration};
 use tokio_stream::wrappers::IntervalStream;
 use warp::Filter;
@@ -354,12 +355,13 @@ fn set_voltage(
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
     }
 
+    let nums_copy = nums.to_vec();
     let mut voltage_now_array: Vec<isize> =
         mhv4_data_array.iter().map(|x| x.get_current()).collect();
     let mut count: usize = 0;
     let mut is_finish: Vec<bool> = vec![false; mhv4_data_array.len()];
 
-    loop {
+    thread::spawn(move || loop {
         for i in 0..mhv4_data_array.len() {
             if voltage_now_array[i] == nums[i] {
                 if !is_finish[i] {
@@ -379,18 +381,18 @@ fn set_voltage(
             println!("{}", command);
             let _ =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
-            std::thread::sleep(Duration::from_millis(wating));
         }
         if count == mhv4_data_array.len() {
             break;
         }
-    }
+        std::thread::sleep(Duration::from_millis(wating));
+    });
 
     {
         let mut shared_data = shared_data.lock().unwrap();
         shared_data.mhv4_data_array[0].set_progress(false);
-        for i in 0..mhv4_data_array.len() {
-            shared_data.mhv4_data_array[i].set_current(nums[i]);
+        for i in 0..shared_data.mhv4_data_array.len() {
+            shared_data.mhv4_data_array[i].set_current(nums_copy[i]);
         }
     }
     true
