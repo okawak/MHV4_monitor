@@ -124,6 +124,12 @@ function setupSSE() {
 function updateTable(data) {
   console.log(data[2]);
   const table = document.querySelector("table");
+  if (data[2]) {
+    table.style.border = "2px solid green";
+  } else {
+    table.style.border = "2px solid yellow";
+  }
+
   for (let i = 0; i < table.rows.length - 1; i++) {
     const row = table.rows[i + 1];
     const v_cell = row.cells[4];
@@ -214,10 +220,6 @@ async function ApplyHV() {
       body: JSON.stringify(data),
     });
     const result = await response.json();
-    if (result) {
-      table.style.border = "2px solid green";
-      console.log("finish HV apply");
-    }
   } catch (error) {
     table.style.border = "2px solid red";
     console.error("Input Error:", error);
