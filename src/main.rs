@@ -222,7 +222,10 @@ fn sse_handler(
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
             if read_array.len() > 1 {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-                let voltage = datas.last().unwrap().to_string();
+                let voltage = match datas.last() {
+                    Some(str) => str.to_string(),
+                    None => String::from("-100_000"),
+                };
                 match voltage.parse() {
                     Ok(num) => v_array.push(num),
                     Err(_) => {
@@ -241,7 +244,10 @@ fn sse_handler(
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
             if read_array.len() > 1 {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-                let current = datas.last().unwrap().to_string();
+                let current = match datas.last() {
+                    Some(str) => str.to_string(),
+                    None => String::from("-100_000"),
+                };
                 match current.parse() {
                     Ok(num) => c_array.push(num),
                     Err(_) => {
