@@ -33,13 +33,7 @@
     display: flex;
 }
 
-/*
-#animatedTable {
-    border-collapse: collapse;
+table {
+    table-layout: fixed;
+    width: 100%;
 }
-
-.animatedCell {
-    transition: border-width 0.2s ease-in-out;
-    border: 1px solid black;
-}
-*/
