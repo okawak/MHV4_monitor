@@ -8,7 +8,7 @@
 html {
     -webkit-box-sizing: border-box;
     box-sizing: border-box;
-    font-size: 62.5%;
+    font-size: 100.0%;
 }
 
 .btn,
@@ -69,4 +69,15 @@ button.btn {
 
 .main-container {
     display: flex;
+}
+
+button {
+    color: #fff;
+    background-color: #eb6100;
+}
+
+button:hover {
+    color: #fff;
+    background: #f56500;
+    border-radius: 100vh;
 }
