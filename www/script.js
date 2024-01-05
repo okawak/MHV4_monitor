@@ -122,7 +122,6 @@ function setupSSE() {
 }
 
 function updateTable(data) {
-  console.log(data[2]);
   const table = document.querySelector("table");
   if (data[2]) {
     table.style.border = "2px solid yellow";
