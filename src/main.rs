@@ -220,26 +220,38 @@ fn sse_handler(
             println!("{}", command);
             let read_array =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
-            if read_array.len() != 3 {
-                println!("{:?}", read_array);
-                v_array.push(-100_000);
-            } else {
+            if read_array.len() > 1 {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
                 let voltage = datas.last().unwrap().to_string();
-                v_array.push(voltage.parse().unwrap());
+                match voltage.parse() {
+                    Ok(num) => v_array.push(num),
+                    Err(_) => {
+                        println!("{:?}", read_array);
+                        v_array.push(-100_000);
+                    }
+                }
+            } else {
+                println!("{:?}", read_array);
+                v_array.push(-100_000);
             }
 
             let command = format!("re {} {} {}\r", bus, dev, ch + 50);
             println!("{}", command);
             let read_array =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
-            if read_array.len() != 3 {
-                println!("{:?}", read_array);
-                c_array.push(-100_000);
-            } else {
+            if read_array.len() > 1 {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
                 let current = datas.last().unwrap().to_string();
-                c_array.push(current.parse().unwrap());
+                match current.parse() {
+                    Ok(num) => c_array.push(num),
+                    Err(_) => {
+                        println!("{:?}", read_array);
+                        c_array.push(-100_000);
+                    }
+                }
+            } else {
+                println!("{:?}", read_array);
+                c_array.push(-100_000);
             }
         }
 
