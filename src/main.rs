@@ -415,7 +415,13 @@ fn port_write_and_read(
     let size: usize;
     {
         let mut port = port.lock().unwrap();
-        size = port.read(v_buf.as_mut_slice()).expect("Found no data!");
+        size = match port.read(v_buf.as_mut_slice()) {
+            Ok(t) => t,
+            Err(_) => {
+                let dummy: Vec<String> = Vec::new();
+                return Ok(dummy);
+            }
+        };
     }
     let bytes = &v_buf[..size];
     let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
