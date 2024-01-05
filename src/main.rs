@@ -13,7 +13,8 @@ use tokio_stream::wrappers::IntervalStream;
 use warp::Filter;
 use warp::Reply;
 
-static INTERVAL: u64 = 50;
+#[macro_use]
+extern crate lazy_static;
 
 #[derive(Debug, Parser)]
 #[clap(
@@ -37,6 +38,13 @@ struct MyArguments {
 
     #[clap(short = 'w', long = "waiting_time_ms", default_value = "500")]
     waiting_time: u64,
+
+    #[clap(short = 'r', long = "port_read_time_ms", default_value = "50")]
+    read_time: u64,
+}
+
+lazy_static! {
+    static ref ARGS: MyArguments = MyArguments::parse();
 }
 
 // MHV4 data array
@@ -198,9 +206,8 @@ fn get_mhv4_data(
 fn sse_handler(
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     shared_data: Arc<Mutex<SharedData>>,
-    sse_interval: u64,
 ) -> impl warp::Reply {
-    let interval = time::interval(Duration::from_millis(sse_interval));
+    let interval = time::interval(Duration::from_millis(ARGS.sse_interval));
     let stream = IntervalStream::new(interval).map(move |_| {
         let mhv4_data_array: Vec<MHV4Data>;
         let is_progress: bool;
@@ -365,8 +372,6 @@ fn set_voltage(
     nums: Vec<isize>,
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     shared_data: Arc<Mutex<SharedData>>,
-    step: isize,
-    wating: u64,
 ) -> bool {
     let mhv4_data_array: Vec<MHV4Data>;
     {
@@ -394,12 +399,12 @@ fn set_voltage(
                         count += 1;
                     }
                     continue;
-                } else if (voltage_now_array[i] - nums[i]).abs() < step {
+                } else if (voltage_now_array[i] - nums[i]).abs() < ARGS.voltage_step {
                     voltage_now_array[i] = nums[i];
                 } else if voltage_now_array[i] < nums[i] {
-                    voltage_now_array[i] += step;
+                    voltage_now_array[i] += ARGS.voltage_step;
                 } else {
-                    voltage_now_array[i] -= step;
+                    voltage_now_array[i] -= ARGS.voltage_step;
                 }
                 let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
                 let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
@@ -410,7 +415,7 @@ fn set_voltage(
             if count == mhv4_data_array.len() {
                 break;
             }
-            std::thread::sleep(Duration::from_millis(wating));
+            std::thread::sleep(Duration::from_millis(ARGS.waiting_time));
         }
 
         {
@@ -432,7 +437,7 @@ fn port_write_and_read(
         let mut port = port.lock().unwrap();
         port.write(command.as_bytes()).expect("Write failed!");
     }
-    std::thread::sleep(Duration::from_millis(INTERVAL));
+    std::thread::sleep(Duration::from_millis(ARGS.read_time));
 
     let mut v_buf: Vec<u8> = vec![0; 100];
     let size: usize;
@@ -459,11 +464,8 @@ async fn main() {
     // init the logger (not inpremented)
     pretty_env_logger::init();
 
-    // argument parser using clap
-    let args: MyArguments = MyArguments::parse();
-
     // port connection
-    let port = serialport::new(args.port_name, args.port_rate)
+    let port = serialport::new(ARGS.port_name.clone(), ARGS.port_rate)
         .stop_bits(serialport::StopBits::One)
         .data_bits(serialport::DataBits::Eight)
         .parity(serialport::Parity::None)
@@ -492,13 +494,8 @@ async fn main() {
         .and(warp::path("mhv4_data"))
         .map(move || get_mhv4_data(port.clone(), shared_data.clone()));
 
-    let sse_route = warp::path("sse").map(move || {
-        sse_handler(
-            port_for_sse.clone(),
-            shared_for_sse.clone(),
-            args.sse_interval,
-        )
-    });
+    let sse_route =
+        warp::path("sse").map(move || sse_handler(port_for_sse.clone(), shared_for_sse.clone()));
 
     let status_route = warp::path("status")
         .and(warp::post())
@@ -512,13 +509,7 @@ async fn main() {
         .and(warp::post())
         .and(warp::body::json())
         .map(move |nums: Vec<isize>| {
-            let result = set_voltage(
-                nums,
-                port_for_apply.clone(),
-                shared_for_apply.clone(),
-                args.voltage_step,
-                args.waiting_time,
-            );
+            let result = set_voltage(nums, port_for_apply.clone(), shared_for_apply.clone());
             warp::reply::json(&result)
         });
 
