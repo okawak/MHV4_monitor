@@ -106,18 +106,15 @@ function createCell(text) {
 }
 
 function setupSSE() {
-  var index = 0;
   const eventSource = new EventSource("/sse");
   eventSource.onopen = function (event) {
     console.log("SSE connection opened:", event);
   };
   eventSource.onmessage = function (event) {
-    console.log(index, "SSE message received:", event);
+    console.log("SSE message received:", event);
     const data = JSON.parse(event.data);
-    console.log(data);
     updateTable(data);
     animateCell();
-    index++;
   };
   eventSource.onerror = function (error) {
     console.error("SSE connection opened:", error);
@@ -125,6 +122,7 @@ function setupSSE() {
 }
 
 function updateTable(data) {
+  console.log(data[2]);
   const table = document.querySelector("table");
   for (let i = 0; i < table.rows.length - 1; i++) {
     const row = table.rows[i + 1];
