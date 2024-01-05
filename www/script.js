@@ -114,6 +114,7 @@ function setupSSE() {
   eventSource.onmessage = function (event) {
     console.log(index, "SSE message received:", event);
     const data = JSON.parse(event.data);
+    console.log(data);
     updateTable(data);
     animateCell();
     index++;

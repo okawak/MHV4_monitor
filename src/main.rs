@@ -201,9 +201,11 @@ fn sse_handler(
     sse_interval: u64,
 ) -> impl warp::Reply {
     let mhv4_data_array: Vec<MHV4Data>;
+    let is_progress: bool;
     {
         let shared_data = shared_data.lock().unwrap();
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
+        is_progress = shared_data.mhv4_data_array[0].get_progress();
     }
 
     let interval = time::interval(Duration::from_millis(sse_interval));
@@ -241,7 +243,7 @@ fn sse_handler(
             }
         }
 
-        let datas = (v_array, c_array);
+        let datas = (v_array, c_array, is_progress);
         let sse_json = serde_json::to_string(&datas).unwrap();
 
         Ok::<_, warp::Error>(warp::sse::Event::default().data(sse_json))
@@ -355,48 +357,47 @@ fn set_voltage(
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
     }
 
-    let nums_copy = nums.to_vec();
     let mut voltage_now_array: Vec<isize> =
         mhv4_data_array.iter().map(|x| x.get_current()).collect();
     let mut count: usize = 0;
     let mut is_finish: Vec<bool> = vec![false; mhv4_data_array.len()];
 
-    let handle = thread::spawn(move || loop {
-        for i in 0..mhv4_data_array.len() {
-            if voltage_now_array[i] == nums[i] {
-                if !is_finish[i] {
-                    is_finish[i] = true;
-                    count += 1;
+    thread::spawn(move || {
+        loop {
+            for i in 0..mhv4_data_array.len() {
+                if voltage_now_array[i] == nums[i] {
+                    if !is_finish[i] {
+                        is_finish[i] = true;
+                        count += 1;
+                    }
+                    continue;
+                } else if (voltage_now_array[i] - nums[i]).abs() < step {
+                    voltage_now_array[i] = nums[i];
+                } else if voltage_now_array[i] < nums[i] {
+                    voltage_now_array[i] += step;
+                } else {
+                    voltage_now_array[i] -= step;
                 }
-                continue;
-            } else if (voltage_now_array[i] - nums[i]).abs() < step {
-                voltage_now_array[i] = nums[i];
-            } else if voltage_now_array[i] < nums[i] {
-                voltage_now_array[i] += step;
-            } else {
-                voltage_now_array[i] -= step;
+                let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+                let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
+                println!("{}", command);
+                let _ = port_write_and_read(port.clone(), command)
+                    .expect("Error in port communication");
             }
-            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-            let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
-            println!("{}", command);
-            let _ =
-                port_write_and_read(port.clone(), command).expect("Error in port communication");
+            if count == mhv4_data_array.len() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(wating));
         }
-        if count == mhv4_data_array.len() {
-            break;
+
+        {
+            let mut shared_data = shared_data.lock().unwrap();
+            shared_data.mhv4_data_array[0].set_progress(false);
+            for i in 0..mhv4_data_array.len() {
+                shared_data.mhv4_data_array[i].set_current(nums[i]);
+            }
         }
-        std::thread::sleep(Duration::from_millis(wating));
     });
-
-    handle.join().unwrap();
-
-    {
-        let mut shared_data = shared_data.lock().unwrap();
-        shared_data.mhv4_data_array[0].set_progress(false);
-        for i in 0..shared_data.mhv4_data_array.len() {
-            shared_data.mhv4_data_array[i].set_current(nums_copy[i]);
-        }
-    }
     true
 }
 
