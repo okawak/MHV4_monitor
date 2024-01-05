@@ -125,9 +125,9 @@ function updateTable(data) {
   console.log(data[2]);
   const table = document.querySelector("table");
   if (data[2]) {
-    table.style.border = "2px solid green";
-  } else {
     table.style.border = "2px solid yellow";
+  } else {
+    table.style.border = "2px solid green";
   }
 
   for (let i = 0; i < table.rows.length - 1; i++) {
