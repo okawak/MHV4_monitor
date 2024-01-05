@@ -8,14 +8,14 @@ const table_title = [
   "about",
 ];
 const mhv4_discription = [
-  "longtest long long long long long long long",
-  "tel1 Eb",
-  "tel1 Ec",
-  "tel1 Ed",
-  "tel2 Ea",
-  "tel2 Eb",
-  "tel2 Ec",
-  "tel2 Ed",
+  "long long long long long long long long long long",
+  "1-2",
+  "1-3",
+  "1-4",
+  "2-1",
+  "2-2",
+  "2-3",
+  "2-4",
 ];
 
 async function DisplayData() {

@@ -305,7 +305,7 @@ fn set_status(
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
 
             // current limit
-            let command = format!("se {} {} {} 2000\r", bus, dev, ch + 8);
+            let command = format!("se {} {} {} 10000\r", bus, dev, ch + 8);
             println!("{}", command);
             let _ =
                 port_write_and_read(port.clone(), command).expect("Error in port communication");
