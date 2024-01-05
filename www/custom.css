@@ -33,7 +33,7 @@
     display: flex;
 }
 
-table {
-    table-layout: fixed;
-    width: 100%;
+td {
+    overflow: auto;
+    max-height: 100px;
 }
