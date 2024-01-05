@@ -8,7 +8,7 @@ const table_title = [
   "about",
 ];
 const mhv4_discription = [
-  "tel1 Ea",
+  "longtest long long long long long long long",
   "tel1 Eb",
   "tel1 Ec",
   "tel1 Ed",
@@ -154,7 +154,7 @@ function animateCell() {
   [v_cell, c_cell].forEach((cell) => {
     cell.style.backgroundColor = "yellow";
     setTimeout(() => {
-      cell.style.backgroundColor = "white";
+      cell.style.backgroundColor = "#e9faf9";
     }, 200);
   });
 }
