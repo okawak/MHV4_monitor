@@ -12,6 +12,8 @@ use tokio_stream::wrappers::IntervalStream;
 use warp::Filter;
 use warp::Reply;
 
+static INTERVAL: u64 = 40;
+
 #[derive(Debug, Parser)]
 #[clap(
     name = env!("CARGO_PKG_NAME"),
@@ -63,7 +65,6 @@ async fn initialize_status(
             port.write(command.as_bytes()).expect("Write failed!");
         }
 
-        std::io::stdout().flush()?;
         std::thread::sleep(Duration::from_millis(100));
 
         let mut buf: Vec<u8> = vec![0; 300];
@@ -149,10 +150,45 @@ async fn initialize_status(
     Ok(())
 }
 
-fn get_mhv4_data(shared_data: Arc<Mutex<SharedData>>) -> impl warp::Reply {
-    let shared_data = shared_data.lock().unwrap();
-    let mhv4_data_array = &shared_data.mhv4_data_array;
+fn get_mhv4_data(
+    port: Arc<Mutex<Box<dyn SerialPort>>>,
+    shared_data: Arc<Mutex<SharedData>>,
+) -> impl warp::Reply {
+    let mut shared_data = shared_data.lock().unwrap();
 
+    if shared_data.mhv4_data_array[0].get_progress() {
+        let mhv4_data_array = shared_data.mhv4_data_array.to_vec();
+        for i in 0..mhv4_data_array.len() {
+            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+            // read current HV
+            let mut tmp: isize = 10_000;
+            let current: isize;
+            loop {
+                let command = format!("re {} {} {}\r", bus, dev, ch + 32);
+                println!("{}", command);
+                let read_array = port_write_and_read(port.clone(), command)
+                    .expect("Error in port communication");
+                if read_array.len() != 3 {
+                    continue;
+                } else {
+                    let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+                    let voltage: isize = datas.last().unwrap().to_string().parse().unwrap();
+                    if voltage != tmp {
+                        tmp = voltage;
+                        continue;
+                    } else {
+                        current = voltage;
+                        break;
+                    }
+                }
+            }
+            shared_data.mhv4_data_array[i].set_current(current);
+        }
+
+        shared_data.mhv4_data_array[0].set_progress(false);
+    }
+
+    let mhv4_data_array = &shared_data.mhv4_data_array;
     let data_json = serde_json::to_string(mhv4_data_array).unwrap_or_else(|_| "[]".to_string());
     warp::reply::json(&data_json).into_response()
 }
@@ -237,18 +273,20 @@ fn set_status(
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("on {} {}\r", bus, dev);
             println!("{}", command);
-            port_write(port.clone(), command).expect("Error in port communication");
+            let _ =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
 
             // current limit
             let command = format!("se {} {} {} 2000\r", bus, dev, ch + 8);
             println!("{}", command);
-            port_write(port.clone(), command).expect("Error in port communication");
+            let _ =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
 
             // if you use IDC=27 MHV4, you can set polarity in here
             //let idc = mhv4_data_array[i].get_idc();
             //if idc == 27 {
             //    let command = format!("se {} {} {} {}\r", bus, dev, ch + 14, mhv4_1[ch]);
-            //    port_write(port.clone(), command).expect("Error in port communication");
+            //    let _ = port_write_and_read(port.clone(), command).expect("Error in port communication");
             //}
         }
 
@@ -262,7 +300,8 @@ fn set_status(
             let (bus, dev, _) = mhv4_data_array[i].get_module_id();
             let command = format!("off {} {}\r", bus, dev);
             println!("{}", command);
-            port_write(port.clone(), command).expect("Error in port communication");
+            let _ =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
         }
 
         {
@@ -275,7 +314,8 @@ fn set_status(
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("se {} {} {} 1\r", bus, dev, ch + 4);
             println!("{}", command);
-            port_write(port.clone(), command).expect("Error in port communication");
+            let _ =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
         }
 
         {
@@ -288,7 +328,8 @@ fn set_status(
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("se {} {} {} 0\r", bus, dev, ch + 4);
             println!("{}", command);
-            port_write(port.clone(), command).expect("Error in port communication");
+            let _ =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
         }
 
         {
@@ -308,7 +349,8 @@ fn set_voltage(
 ) -> bool {
     let mhv4_data_array: Vec<MHV4Data>;
     {
-        let shared_data = shared_data.lock().unwrap();
+        let mut shared_data = shared_data.lock().unwrap();
+        shared_data.mhv4_data_array[0].set_progress(true);
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
     }
 
@@ -335,7 +377,8 @@ fn set_voltage(
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
             println!("{}", command);
-            port_write(port.clone(), command).expect("Error in port communication");
+            let _ =
+                port_write_and_read(port.clone(), command).expect("Error in port communication");
             std::thread::sleep(Duration::from_millis(wating));
         }
         if count == mhv4_data_array.len() {
@@ -345,6 +388,7 @@ fn set_voltage(
 
     {
         let mut shared_data = shared_data.lock().unwrap();
+        shared_data.mhv4_data_array[0].set_progress(false);
         for i in 0..mhv4_data_array.len() {
             shared_data.mhv4_data_array[i].set_current(nums[i]);
         }
@@ -360,8 +404,7 @@ fn port_write_and_read(
         let mut port = port.lock().unwrap();
         port.write(command.as_bytes()).expect("Write failed!");
     }
-    std::io::stdout().flush()?;
-    std::thread::sleep(Duration::from_millis(40));
+    std::thread::sleep(Duration::from_millis(INTERVAL));
 
     let mut v_buf: Vec<u8> = vec![0; 100];
     let size: usize;
@@ -375,16 +418,6 @@ fn port_write_and_read(
     let vec = read_array.iter().map(|&s| s.to_string()).collect();
 
     Ok(vec)
-}
-
-fn port_write(port: Arc<Mutex<Box<dyn SerialPort>>>, command: String) -> Result<(), io::Error> {
-    {
-        let mut port = port.lock().unwrap();
-        port.write(command.as_bytes()).expect("Write failed!");
-    }
-    std::io::stdout().flush()?;
-    std::thread::sleep(Duration::from_millis(40));
-    Ok(())
 }
 
 #[tokio::main]
@@ -423,7 +456,7 @@ async fn main() {
 
     let get_mhv4_data_route = warp::get()
         .and(warp::path("mhv4_data"))
-        .map(move || get_mhv4_data(shared_data.clone()));
+        .map(move || get_mhv4_data(port.clone(), shared_data.clone()));
 
     let sse_route = warp::path("sse").map(move || {
         sse_handler(

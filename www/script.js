@@ -38,14 +38,18 @@ function setStatus(data) {
 function createTable(data) {
     const container = document.getElementById('TableContainer');
     const table = document.createElement('table');
+    table.setAttribute("id", "animatedTable");
     table.setAttribute('border', '1');
     table.style.border = "2px solid green";
 
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    table_title.forEach(field => {
+    table_title.forEach((field, index) => {
         const th = document.createElement('th');
         th.textContent = field;
+        if (index == 4 || index == 5) {
+            th.className("animatedCell");
+        }
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
@@ -71,8 +75,13 @@ function createTable(data) {
         row.appendChild(inputCell);
 
         // SSE field (initially empty)
-        row.appendChild(createCell(''));
-        row.appendChild(createCell(''));
+        const sseCell_v = createCell('');
+        sseCell_v.className("animatedCell");
+        row.appendChild(sseCell_v);
+
+        const sseCell_c = createCell('');
+        sseCell_c.className("animatedCell");
+        row.appendChild(sseCell_c);
 
         row.appendChild(createCell(mhv4_discription[index]));
 
@@ -100,7 +109,7 @@ function setupSSE() {
         console.log(index, "SSE message received:", event);
         const data = JSON.parse(event.data);
         updateTable(data);
-        displayTextAnimation("GET");
+        animateColumn();
         index++;
     };
     eventSource.onerror = function (error) {
@@ -128,13 +137,14 @@ function updateTable(data) {
     }
 }
 
-function displayTextAnimation(text) {
-    const animatedText = document.getElementById("animatedText");
-    animatedText.innerText = text;
-    animatedText.style.opacity = 1;
-    setTimeout(() => {
-        animatedText.style.opacity = 0;
-    }, 200);
+function animateColumn() {
+    const animatedColumn = document.querySelectorAll(".animatedColumn");
+    animatedColumn.forEach(column => {
+        column.style.borderWidth = "2px";
+        setTimeout(() => {
+            column.style.borderWidth = "1px";
+        }, 200);
+    });
 }
 
 // 0: RC on, 1: RC off, 2: Power on, 3: Power off
