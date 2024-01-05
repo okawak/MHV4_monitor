@@ -372,6 +372,7 @@ fn set_voltage(
     {
         let mut shared_data = shared_data.lock().unwrap();
         shared_data.mhv4_data_array[0].set_progress(true);
+        println!("{}", shared_data.mhv4_data_array[0].get_progress());
         mhv4_data_array = shared_data.mhv4_data_array.to_vec();
     }
 
