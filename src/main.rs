@@ -39,7 +39,7 @@ struct MyArguments {
     #[clap(short = 'w', long = "waiting_time_ms", default_value = "500")]
     waiting_time: u64,
 
-    #[clap(short = 'r', long = "port_read_time_ms", default_value = "50")]
+    #[clap(short = 't', long = "port_read_time_ms", default_value = "50")]
     read_time: u64,
 }
 

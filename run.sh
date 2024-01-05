@@ -8,4 +8,4 @@ waiting_time="500"  # ms
 read_time="50"      # ms
 
 cargo build --release
-./target/release/mhv4_monitor -p $port_name -r $port_rate -i $sse_interval -s $voltage_step -w $waiting_time -r $read_time
+./target/release/mhv4_monitor -p $port_name -r $port_rate -i $sse_interval -s $voltage_step -w $waiting_time -t $read_time
