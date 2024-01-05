@@ -196,9 +196,7 @@ async function ChangeStatus(num) {
 
 async function ApplyHV() {
   const table = document.querySelector("table");
-  setTimeout(() => {
-    table.style.border = "2px solid yellow";
-  }, 1500);
+  table.style.border = "2px solid yellow";
 
   try {
     const rows = table.querySelectorAll("tr");
