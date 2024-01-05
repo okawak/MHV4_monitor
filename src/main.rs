@@ -13,7 +13,7 @@ use tokio_stream::wrappers::IntervalStream;
 use warp::Filter;
 use warp::Reply;
 
-static INTERVAL: u64 = 40;
+static INTERVAL: u64 = 50;
 
 #[derive(Debug, Parser)]
 #[clap(
@@ -361,7 +361,7 @@ fn set_voltage(
     let mut count: usize = 0;
     let mut is_finish: Vec<bool> = vec![false; mhv4_data_array.len()];
 
-    thread::spawn(move || loop {
+    let handle = thread::spawn(move || loop {
         for i in 0..mhv4_data_array.len() {
             if voltage_now_array[i] == nums[i] {
                 if !is_finish[i] {
@@ -387,6 +387,8 @@ fn set_voltage(
         }
         std::thread::sleep(Duration::from_millis(wating));
     });
+
+    handle.join().unwrap();
 
     {
         let mut shared_data = shared_data.lock().unwrap();
