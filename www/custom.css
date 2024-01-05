@@ -97,12 +97,18 @@ table {
 }
 
 table th {
-    padding: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 3px;
+    padding-bottom: 3px;
     background: #e9faf9;
     border: solid 1px #778ca3;
 }
 
 table td {
-    padding: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 3px;
+    padding-bottom: 3px;
     border: solid 1px #778ca3;
 }
