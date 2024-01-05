@@ -200,16 +200,16 @@ fn sse_handler(
     shared_data: Arc<Mutex<SharedData>>,
     sse_interval: u64,
 ) -> impl warp::Reply {
-    let mhv4_data_array: Vec<MHV4Data>;
-    let is_progress: bool;
-    {
-        let shared_data = shared_data.lock().unwrap();
-        mhv4_data_array = shared_data.mhv4_data_array.to_vec();
-        is_progress = shared_data.mhv4_data_array[0].get_progress();
-    }
-
     let interval = time::interval(Duration::from_millis(sse_interval));
     let stream = IntervalStream::new(interval).map(move |_| {
+        let mhv4_data_array: Vec<MHV4Data>;
+        let is_progress: bool;
+        {
+            let shared_data = shared_data.lock().unwrap();
+            mhv4_data_array = shared_data.mhv4_data_array.to_vec();
+            is_progress = shared_data.mhv4_data_array[0].get_progress();
+        }
+
         let mut v_array: Vec<isize> = Vec::new();
         let mut c_array: Vec<isize> = Vec::new();
 

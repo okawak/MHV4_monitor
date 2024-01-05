@@ -79,7 +79,7 @@ function createTable(data) {
     const inputCell = document.createElement("td");
     const input = document.createElement("input");
     input.type = "number";
-    input.value = (mod.current * 0.1).toFixed(1);
+    input.value = (Math.abs(mod.current) * 0.1).toFixed(1);
     input.step = 0.1;
     input.min = 0;
     inputCell.appendChild(input);
