@@ -1,34 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" type="text/css" href="custom.css">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="custom.css" />
     <title>MHV4 monitor</title>
-</head>
+  </head>
 
-<body>
+  <body>
     <h1>MHV4 monitor</h1>
     <span id="real_time"></span>
+    <p>Green = ON, Red = OFF, Yellow = in progress</p>
 
-    <!--Status monitor-->
-    <h2>Status (Green=ON, Red=OFF, Yellow=in process)</h2>
+    <h2>Status</h2>
     <div class="main-container">
-        <div class="status-container">
-            <span id="statusCircle1" class="status-circle"></span>
-            <div class="button-container">
-                <button onclick="ChangeStatus(0)">RC ON</button>
-                <button onclick="ChangeStatus(1)">RC OFF</button>
-            </div>
+      <div class="status-container">
+        <span id="statusCircle1" class="status-circle"></span>
+        <div class="button-container">
+          <button onclick="ChangeStatus(0)">RC ON</button>
+          <button onclick="ChangeStatus(1)">RC OFF</button>
         </div>
+      </div>
 
-        <div class="status-container">
-            <span id="statusCircle2" class="status-circle"></span>
-            <div class="button-container">
-                <button onclick="ChangeStatus(2)">Power ON</button>
-                <button onclick="ChangeStatus(3)">Power OFF</button>
-            </div>
+      <div class="status-container">
+        <span id="statusCircle2" class="status-circle"></span>
+        <div class="button-container">
+          <button onclick="ChangeStatus(2)">Power ON</button>
+          <button onclick="ChangeStatus(3)">Power OFF</button>
         </div>
+      </div>
     </div>
 
     <!--main-->
@@ -37,6 +36,5 @@
     <button id="applyButton" onclick="ApplyHV()">Apply</button>
 
     <script src="script.js"></script>
-</body>
-
+  </body>
 </html>

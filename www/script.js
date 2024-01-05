@@ -53,7 +53,6 @@ function setStatus(data) {
 function createTable(data) {
   const container = document.getElementById("TableContainer");
   const table = document.createElement("table");
-  table.setAttribute("id", "animatedTable");
   table.setAttribute("border", "1");
   table.style.border = "2px solid green";
 
@@ -62,9 +61,6 @@ function createTable(data) {
   table_title.forEach((field, index) => {
     const th = document.createElement("th");
     th.textContent = field;
-    if (index == 4 || index == 5) {
-      th.className = "animatedCell";
-    }
     headerRow.appendChild(th);
   });
   thead.appendChild(headerRow);
@@ -90,13 +86,8 @@ function createTable(data) {
     row.appendChild(inputCell);
 
     // SSE field (initially empty)
-    const sseCell_v = createCell("");
-    sseCell_v.className = "animatedCell";
-    row.appendChild(sseCell_v);
-
-    const sseCell_c = createCell("");
-    sseCell_c.className = "animatedCell";
-    row.appendChild(sseCell_c);
+    row.appendChild(createCell(""));
+    row.appendChild(createCell(""));
 
     row.appendChild(createCell(mhv4_discription[index]));
 
@@ -124,7 +115,7 @@ function setupSSE() {
     console.log(index, "SSE message received:", event);
     const data = JSON.parse(event.data);
     updateTable(data);
-    animateColumn();
+    animateCell();
     index++;
   };
   eventSource.onerror = function (error) {
@@ -152,12 +143,14 @@ function updateTable(data) {
   }
 }
 
-function animateColumn() {
-  const animatedColumn = document.querySelectorAll(".animatedColumn");
-  animatedColumn.forEach((column) => {
-    column.style.borderWidth = "2px";
+function animateCell() {
+  const table = document.querySelector("table");
+  const v_cell = table.rows[0].cells[4];
+  const c_cell = table.rows[0].cells[5];
+  [v_cell, c_cell].forEach((cell) => {
+    cell.style.backgroundColor = "yellow";
     setTimeout(() => {
-      column.style.borderWidth = "1px";
+      cell.style.backgroundColor = "white";
     }, 200);
   });
 }

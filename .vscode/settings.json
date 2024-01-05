@@ -2,9 +2,15 @@
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
     "editor.formatOnType": true,
+
     "[rust]": {
         "editor.defaultFormatter": "rust-lang.rust-analyzer"
     },
+
+    "[html]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+
     "[javascript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
