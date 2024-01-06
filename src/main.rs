@@ -6,6 +6,7 @@ use mhv4::MHV4Data;
 use serialport::SerialPort;
 use std::env;
 use std::io::{self, Read, Write};
+use std::sync::OnceLock;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tokio::time::{self, Duration};
@@ -42,6 +43,8 @@ struct MyArguments {
     #[clap(short = 't', long = "port_read_time_ms", default_value = "50")]
     read_time: u64,
 }
+
+static ARGS2: OnceLock<MyArguments> = OnceLock::new();
 
 lazy_static! {
     static ref ARGS: MyArguments = MyArguments::parse();
@@ -207,7 +210,8 @@ fn sse_handler(
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     shared_data: Arc<Mutex<SharedData>>,
 ) -> impl warp::Reply {
-    let interval = time::interval(Duration::from_millis(ARGS.sse_interval));
+    //let interval = time::interval(Duration::from_millis(ARGS.sse_interval));
+    let interval = time::interval(Duration::from_millis(ARGS2.get().unwrap().sse_interval));
     let stream = IntervalStream::new(interval).map(move |_| {
         let mhv4_data_array: Vec<MHV4Data>;
         let is_progress: bool;
@@ -461,17 +465,27 @@ fn port_write_and_read(
 
 #[tokio::main]
 async fn main() {
+    // argument parser
+    let args = MyArguments::parse();
+    ARGS2
+        .set(args)
+        .expect("Failed to set command line arguments");
+
     // init the logger (not inpremented)
     pretty_env_logger::init();
 
     // port connection
-    let port = serialport::new(ARGS.port_name.clone(), ARGS.port_rate)
-        .stop_bits(serialport::StopBits::One)
-        .data_bits(serialport::DataBits::Eight)
-        .parity(serialport::Parity::None)
-        .timeout(Duration::from_millis(100))
-        .open()
-        .expect("Failed to open serial port");
+    //let port = serialport::new(ARGS.port_name.clone(), ARGS.port_rate)
+    let port = serialport::new(
+        &ARGS2.get().expect("arguments not set").port_name,
+        ARGS2.get().expect("arguments not set").port_rate,
+    )
+    .stop_bits(serialport::StopBits::One)
+    .data_bits(serialport::DataBits::Eight)
+    .parity(serialport::Parity::None)
+    .timeout(Duration::from_millis(100))
+    .open()
+    .expect("Failed to open serial port");
 
     // get Mutex key
     let port = Arc::new(Mutex::new(port));
