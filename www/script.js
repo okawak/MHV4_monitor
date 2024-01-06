@@ -36,14 +36,14 @@ async function DisplayData() {
 function setStatus(data) {
   const obj = JSON.parse(data);
   const circle1 = document.getElementById("statusCircle1");
-  if (obj[0].is_rc) {
+  if (obj.is_rc) {
     circle1.className = "status-circle green";
   } else {
     circle1.className = "status-circle red";
   }
 
   const circle2 = document.getElementById("statusCircle2");
-  if (obj[0].is_on) {
+  if (obj.is_on) {
     circle2.className = "status-circle green";
   } else {
     circle2.className = "status-circle red";
@@ -69,7 +69,7 @@ function createTable(data) {
   // table data
   const tbody = document.createElement("tbody");
   const obj = JSON.parse(data);
-  obj.forEach((mod, index) => {
+  obj["mhv4_data_array"].forEach((mod, index) => {
     const row = document.createElement("tr");
     row.appendChild(createCell(mod.bus));
     row.appendChild(createCell(mod.dev));
