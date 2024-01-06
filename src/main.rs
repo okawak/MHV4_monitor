@@ -49,6 +49,11 @@ static DATA: OnceLock<Arc<Mutex<SharedData>>> = OnceLock::new();
 async fn initialize_status() -> Result<(), io::Error> {
     let mut mhv4_array: Vec<MHV4Data> = Vec::new();
 
+    let mut is_rc = false;
+    let mut is_rc_first = true;
+    let mut is_on = false;
+    let mut is_on_first = true;
+
     for bus in 0..2 {
         let command = format!("sc {}\r", bus);
         println!("{}", command);
@@ -68,11 +73,6 @@ async fn initialize_status() -> Result<(), io::Error> {
         let bytes = &buf[..size];
         let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
         let modules = string.split("\n\r").collect::<Vec<_>>();
-
-        let mut is_rc = false;
-        let mut is_rc_first = true;
-        let mut is_on = false;
-        let mut is_on_first = true;
 
         for dev in 0..16 {
             let module = modules[dev + 2].to_string();
@@ -138,13 +138,13 @@ async fn initialize_status() -> Result<(), io::Error> {
                 mhv4_array.push(MHV4Data::new(idc, bus, dev, ch, current));
             }
         }
-        let shared_data = Arc::new(Mutex::new(SharedData::new(
-            mhv4_array.clone(),
-            is_on,
-            is_rc,
-        )));
-        DATA.set(shared_data).expect("Failed to set DATA OnceLock");
     }
+    let shared_data = Arc::new(Mutex::new(SharedData::new(
+        mhv4_array.clone(),
+        is_on,
+        is_rc,
+    )));
+    DATA.set(shared_data).expect("Failed to set DATA OnceLock");
 
     Ok(())
 }
