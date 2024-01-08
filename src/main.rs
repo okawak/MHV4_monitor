@@ -449,11 +449,11 @@ async fn main() {
         .await
         .expect("Failed to initialize serial port");
 
-    let get_mhv4_data_route = warp::get()
-        .and(warp::path("mhv4_data"))
+    let get_mhv4_data_route = warp::path("mhv4_data")
+        .and(warp::get())
         .map(|| get_mhv4_data());
 
-    let sse_route = warp::path("sse").map(|| sse_handler());
+    let sse_route = warp::path("sse").and(warp::get()).map(|| sse_handler());
 
     let status_route = warp::path("status")
         .and(warp::post())
