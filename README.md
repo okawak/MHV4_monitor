@@ -1,12 +1,11 @@
 # demo
-![demo](https://github.com/okawak/MHV4_monitor/assets/116426897/a5f19e53-8dd8-4dcd-b1d4-c84f0791a432)
+![demo_short](https://github.com/okawak/MHV4_monitor/assets/116426897/769a5ec2-58d8-43dc-85af-4548e1b7c1fc)
 
 # install
-prepare Rust lang environment
+prepare Rust lang environment. see https://www.rust-lang.org/tools/install
 ```shell
-git clone this_repository
-mv MHV4_monitor
-cargo build (-r)
+git clone https://github.com/okawak/MHV4_monitor.git
+cd MHV4_monitor
 ```
 
 # test
@@ -15,8 +14,10 @@ cargo test -- --nocapture
 ```
 
 # usage
-generate web server at localhost:8080
+generate web server at 0.0.0.0:8080
 
 ```shell
-cargo run (-r) 
+cargo run
+# or
+./run.sh
 ```
