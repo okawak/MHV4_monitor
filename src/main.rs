@@ -57,17 +57,14 @@ async fn initialize_status() -> Result<(), io::Error> {
     for bus in 0..2 {
         let command = format!("sc {}\r", bus);
         println!("{}", command);
-        {
-            let mut port = PORT.get().unwrap().lock().unwrap();
-            port.write(command.as_bytes()).expect("Write failed!");
-        }
-
-        std::thread::sleep(Duration::from_millis(100));
-
         let mut buf: Vec<u8> = vec![0; 300];
         let size: usize;
         {
             let mut port = PORT.get().unwrap().lock().unwrap();
+            port.write(command.as_bytes()).expect("Write failed!");
+
+            std::thread::sleep(Duration::from_millis(100));
+
             size = port.read(buf.as_mut_slice()).expect("Found no data!");
         }
         let bytes = &buf[..size];
@@ -393,17 +390,14 @@ fn set_voltage(nums: Vec<isize>) -> bool {
 }
 
 fn port_write_and_read(command: String) -> Result<Vec<String>, io::Error> {
-    {
-        let mut port = PORT.get().unwrap().lock().unwrap();
-        port.write(command.as_bytes()).expect("Write failed!");
-    }
-    std::thread::sleep(Duration::from_millis(ARGS.get().unwrap().read_time));
-
-    let mut v_buf: Vec<u8> = vec![0; 100];
+    let mut buf: Vec<u8> = vec![0; 100];
     let size: usize;
     {
         let mut port = PORT.get().unwrap().lock().unwrap();
-        size = match port.read(v_buf.as_mut_slice()) {
+        port.write(command.as_bytes()).expect("Write failed!");
+        std::thread::sleep(Duration::from_millis(ARGS.get().unwrap().read_time));
+
+        size = match port.read(buf.as_mut_slice()) {
             Ok(t) => t,
             Err(_) => {
                 let dummy: Vec<String> = Vec::new();
@@ -411,7 +405,7 @@ fn port_write_and_read(command: String) -> Result<Vec<String>, io::Error> {
             }
         };
     }
-    let bytes = &v_buf[..size];
+    let bytes = &buf[..size];
     let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
     let read_array = string.split("\n\r").collect::<Vec<_>>();
     let vec = read_array.iter().map(|&s| s.to_string()).collect();
