@@ -281,12 +281,12 @@ fn set_status(num: u32) -> bool {
             println!("{}", command);
             let _ = port_write_and_read(command).expect("Error in port communication");
 
-            // if you use IDC=27 MHV4, you can set polarity in here
-            //let idc = mhv4_data_array[i].get_idc();
-            //if idc == 27 {
-            //    let command = format!("se {} {} {} {}\r", bus, dev, ch + 14, mhv4_1[ch]);
-            //    let _ = port_write_and_read(port.clone(), command).expect("Error in port communication");
-            //}
+            // if you use IDC=27 MHV4, you can set polarity or something in here
+            let idc = mhv4_data_array[i].get_idc();
+            if idc == 27 {
+                let command = format!("se {} {} 80 0\r", bus, dev);
+                let _ = port_write_and_read(command).expect("Error in port communication");
+            }
         }
 
         {
