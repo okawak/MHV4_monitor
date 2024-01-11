@@ -26,7 +26,6 @@ impl MHV4Data {
         }
     }
 
-    #[allow(dead_code)]
     pub fn get_idc(self) -> usize {
         self.idc
     }

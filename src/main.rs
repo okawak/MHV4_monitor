@@ -40,6 +40,9 @@ struct MyArguments {
 
     #[clap(short = 't', long = "port_read_time_ms", default_value = "50")]
     read_time: u64,
+
+    #[clap(short = 'v', long = "verbose")]
+    verbose: bool,
 }
 
 static ARGS: OnceLock<MyArguments> = OnceLock::new();
@@ -56,7 +59,7 @@ async fn initialize_status() -> Result<(), io::Error> {
 
     for bus in 0..2 {
         let command = format!("sc {}\r", bus);
-        println!("{}", command);
+        println!("Init: {}", command);
         let mut buf: Vec<u8> = vec![0; 300];
         let size: usize;
         {
@@ -70,6 +73,7 @@ async fn initialize_status() -> Result<(), io::Error> {
         let bytes = &buf[..size];
         let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
         let modules = string.split("\n\r").collect::<Vec<_>>();
+        println!("{:?}", modules);
 
         for dev in 0..16 {
             let module = modules[dev + 2].to_string();
@@ -96,7 +100,6 @@ async fn initialize_status() -> Result<(), io::Error> {
             for ch in 0..4 {
                 if is_on_first {
                     let command = format!("re {} {} {}\r", bus, dev, ch + 36);
-                    println!("{}", command);
                     let read_array =
                         port_write_and_read(command).expect("Error in port communication");
                     if read_array.len() == 3 {
@@ -114,7 +117,6 @@ async fn initialize_status() -> Result<(), io::Error> {
                 let current: isize;
                 loop {
                     let command = format!("re {} {} {}\r", bus, dev, ch + 32);
-                    println!("{}", command);
                     let read_array =
                         port_write_and_read(command).expect("Error in port communication");
                     if read_array.len() != 3 {
@@ -158,7 +160,6 @@ fn get_mhv4_data() -> impl warp::Reply {
             let current: isize;
             loop {
                 let command = format!("re {} {} {}\r", bus, dev, ch + 32);
-                println!("{}", command);
                 let read_array = port_write_and_read(command).expect("Error in port communication");
                 if read_array.len() != 3 {
                     continue;
@@ -203,7 +204,6 @@ fn sse_handler() -> impl warp::Reply {
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
 
             let command = format!("re {} {} {}\r", bus, dev, ch + 32);
-            println!("{}", command);
             let read_array = port_write_and_read(command).expect("Error in port communication");
             if read_array.len() > 1 {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
@@ -224,7 +224,6 @@ fn sse_handler() -> impl warp::Reply {
             }
 
             let command = format!("re {} {} {}\r", bus, dev, ch + 50);
-            println!("{}", command);
             let read_array = port_write_and_read(command).expect("Error in port communication");
             if read_array.len() > 1 {
                 let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
@@ -268,23 +267,24 @@ fn set_status(num: u32) -> bool {
     // remote ON
     if num == 0 && !current_rc {
         // if you use IDC=27 MHV4, please prepare polarity list
-        // example) 0: negative, 1: positive
-        // let mhv4_1 = [0, 0, 1, 1]; // 1ch: neg, 2ch: neg, 3ch: pos, 4ch: pos
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("on {} {}\r", bus, dev);
-            println!("{}", command);
             let _ = port_write_and_read(command).expect("Error in port communication");
 
             // current limit
             let command = format!("se {} {} {} 10000\r", bus, dev, ch + 8);
-            println!("{}", command);
             let _ = port_write_and_read(command).expect("Error in port communication");
 
             // if you use IDC=27 MHV4, you can set polarity or something in here
             let idc = mhv4_data_array[i].get_idc();
             if idc == 27 {
+                // ramp speed setting
                 let command = format!("se {} {} 80 0\r", bus, dev);
+                let _ = port_write_and_read(command).expect("Error in port communication");
+            } else {
+                // HV range setting
+                let command = format!("se {} {} 13 1\r", bus, dev);
                 let _ = port_write_and_read(command).expect("Error in port communication");
             }
         }
@@ -298,7 +298,6 @@ fn set_status(num: u32) -> bool {
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, _) = mhv4_data_array[i].get_module_id();
             let command = format!("off {} {}\r", bus, dev);
-            println!("{}", command);
             let _ = port_write_and_read(command).expect("Error in port communication");
         }
 
@@ -311,7 +310,6 @@ fn set_status(num: u32) -> bool {
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("se {} {} {} 1\r", bus, dev, ch + 4);
-            println!("{}", command);
             let _ = port_write_and_read(command).expect("Error in port communication");
         }
 
@@ -324,7 +322,6 @@ fn set_status(num: u32) -> bool {
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
             let command = format!("se {} {} {} 0\r", bus, dev, ch + 4);
-            println!("{}", command);
             let _ = port_write_and_read(command).expect("Error in port communication");
         }
 
@@ -369,7 +366,6 @@ fn set_voltage(nums: Vec<isize>) -> bool {
                 }
                 let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
                 let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
-                println!("{}", command);
                 let _ = port_write_and_read(command).expect("Error in port communication");
             }
             if count == mhv4_data_array.len() {
@@ -390,6 +386,9 @@ fn set_voltage(nums: Vec<isize>) -> bool {
 }
 
 fn port_write_and_read(command: String) -> Result<Vec<String>, io::Error> {
+    if ARGS.get().unwrap().verbose {
+        println!("{}", command);
+    }
     let mut buf: Vec<u8> = vec![0; 100];
     let size: usize;
     {
