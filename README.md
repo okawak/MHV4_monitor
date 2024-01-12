@@ -26,7 +26,7 @@ generate web server at 0.0.0.0:8080
 
 
 ```shell
-cargo run --bin MHV4_monitor
+cargo run --bin mhv4_monitor
 # or
 ./run.sh
 ```
