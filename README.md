@@ -13,11 +13,20 @@ cd MHV4_monitor
 cargo test -- --nocapture
 ```
 
+# send just one command
+
+```shell
+cargo run --bin command -- "COMMAND"
+# or
+./command.sh "COMMAND"
+```
+
 # usage
 generate web server at 0.0.0.0:8080
 
+
 ```shell
-cargo run
+cargo run --bin MHV4_monitor
 # or
 ./run.sh
 ```
