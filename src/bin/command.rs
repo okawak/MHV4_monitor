@@ -12,15 +12,22 @@ use std::time::Duration;
     arg_required_else_help = true,
 )]
 struct MyArguments {
-    #[clap(value_name = "COMMAND", help = "send command (String), ex. \"sc 0\"")]
+    #[clap(
+        value_name = "COMMAND",
+        help = "send command (String), ex. \"sc 0\"",
+        required = true
+    )]
     command: String,
+
+    #[clap(short = 'p', long = "port_name", default_value = "/dev/ttyUSB0")]
+    port_name: String,
 }
 
 #[allow(unused_assignments)]
 fn main() -> Result<(), Box<dyn Error>> {
     let args = MyArguments::parse();
 
-    let mut port = serialport::new("/dev/ttyUSB0", 9600)
+    let mut port = serialport::new(args.port_name, 9600)
         .stop_bits(serialport::StopBits::One)
         .data_bits(serialport::DataBits::Eight)
         .parity(serialport::Parity::None)

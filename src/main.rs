@@ -2,7 +2,7 @@ mod mhv4;
 mod shared;
 
 use clap::Parser;
-use futures::StreamExt;
+use futures::Stream;
 use mhv4::MHV4Data;
 use serialport::SerialPort;
 use shared::SharedData;
@@ -10,8 +10,7 @@ use std::env;
 use std::io::{self, Read, Write};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
-use tokio::time::{self, Duration};
-use tokio_stream::wrappers::IntervalStream;
+use tokio::time::Duration;
 use warp::Filter;
 use warp::Reply;
 
@@ -29,17 +28,14 @@ struct MyArguments {
     #[clap(short = 'r', long = "port_rate", default_value = "9600")]
     port_rate: u32,
 
-    #[clap(short = 'i', long = "sse_interval_ms", default_value = "1000")]
-    sse_interval: u64,
-
     #[clap(short = 's', long = "apply_hv_step", default_value = "5")] // 1 -> 0.1 V
     voltage_step: isize,
 
     #[clap(short = 'w', long = "waiting_time_ms", default_value = "500")]
     waiting_time: u64,
 
-    #[clap(short = 't', long = "port_read_time_ms", default_value = "50")]
-    read_time: u64,
+    #[clap(short = 'm', long = "max_voltage", default_value = "3000")] // 1 -> 0.1 V
+    max_voltage: isize,
 
     #[clap(short = 'v', long = "verbose")]
     verbose: bool,
@@ -127,8 +123,11 @@ async fn initialize_status() -> Result<(), io::Error> {
                         if voltage != tmp {
                             tmp = voltage;
                             continue;
+                        } else if voltage.abs() > ARGS.get().unwrap().max_voltage {
+                            // maximum voltage (for reading error)
+                            continue;
                         } else {
-                            current = voltage;
+                            current = voltage.abs();
                             break;
                         }
                     }
@@ -186,71 +185,72 @@ fn get_mhv4_data() -> impl warp::Reply {
 }
 
 // SSE endpoint
-fn sse_handler() -> impl warp::Reply {
-    let interval = time::interval(Duration::from_millis(ARGS.get().unwrap().sse_interval));
-    let stream = IntervalStream::new(interval).map(move |_| {
-        let mhv4_data_array: Vec<MHV4Data>;
-        let is_progress: bool;
-        {
-            let shared_data = DATA.get().unwrap().lock().unwrap();
-            mhv4_data_array = shared_data.get_data();
-            is_progress = shared_data.get_progress();
+fn get_sse_stream() -> impl Stream<Item = Result<warp::sse::Event, warp::Error>> {
+    futures::stream::unfold((), |()| async move {
+        let result = read_monitor_value().await;
+        let sse_json = serde_json::to_string(&result).unwrap();
+        let sse_data = warp::sse::Event::default().data(sse_json);
+
+        Some((Ok(sse_data), ()))
+    })
+}
+
+async fn read_monitor_value() -> (Vec<isize>, Vec<isize>, bool) {
+    let mhv4_data_array: Vec<MHV4Data>;
+    let is_progress: bool;
+    {
+        let shared_data = DATA.get().unwrap().lock().unwrap();
+        mhv4_data_array = shared_data.get_data();
+        is_progress = shared_data.get_progress();
+    }
+
+    let mut v_array: Vec<isize> = Vec::new();
+    let mut c_array: Vec<isize> = Vec::new();
+
+    for i in 0..mhv4_data_array.len() {
+        let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+
+        let command = format!("re {} {} {}\r", bus, dev, ch + 32);
+        let read_array = port_write_and_read(command).expect("Error in port communication");
+        if read_array.len() > 1 {
+            let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+            let voltage = match datas.last() {
+                Some(str) => str.to_string(),
+                None => String::from("-100_000"),
+            };
+            match voltage.parse() {
+                Ok(num) => v_array.push(num),
+                Err(_) => {
+                    println!("{:?}", read_array);
+                    v_array.push(-100_000);
+                }
+            }
+        } else {
+            println!("{:?}", read_array);
+            v_array.push(-100_000);
         }
 
-        let mut v_array: Vec<isize> = Vec::new();
-        let mut c_array: Vec<isize> = Vec::new();
-
-        for i in 0..mhv4_data_array.len() {
-            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-
-            let command = format!("re {} {} {}\r", bus, dev, ch + 32);
-            let read_array = port_write_and_read(command).expect("Error in port communication");
-            if read_array.len() > 1 {
-                let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-                let voltage = match datas.last() {
-                    Some(str) => str.to_string(),
-                    None => String::from("-100_000"),
-                };
-                match voltage.parse() {
-                    Ok(num) => v_array.push(num),
-                    Err(_) => {
-                        println!("{:?}", read_array);
-                        v_array.push(-100_000);
-                    }
+        let command = format!("re {} {} {}\r", bus, dev, ch + 50);
+        let read_array = port_write_and_read(command).expect("Error in port communication");
+        if read_array.len() > 1 {
+            let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+            let current = match datas.last() {
+                Some(str) => str.to_string(),
+                None => String::from("-100_000"),
+            };
+            match current.parse() {
+                Ok(num) => c_array.push(num),
+                Err(_) => {
+                    println!("{:?}", read_array);
+                    c_array.push(-100_000);
                 }
-            } else {
-                println!("{:?}", read_array);
-                v_array.push(-100_000);
             }
-
-            let command = format!("re {} {} {}\r", bus, dev, ch + 50);
-            let read_array = port_write_and_read(command).expect("Error in port communication");
-            if read_array.len() > 1 {
-                let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-                let current = match datas.last() {
-                    Some(str) => str.to_string(),
-                    None => String::from("-100_000"),
-                };
-                match current.parse() {
-                    Ok(num) => c_array.push(num),
-                    Err(_) => {
-                        println!("{:?}", read_array);
-                        c_array.push(-100_000);
-                    }
-                }
-            } else {
-                println!("{:?}", read_array);
-                c_array.push(-100_000);
-            }
+        } else {
+            println!("{:?}", read_array);
+            c_array.push(-100_000);
         }
-
-        let datas = (v_array, c_array, is_progress);
-        let sse_json = serde_json::to_string(&datas).unwrap();
-
-        Ok::<_, warp::Error>(warp::sse::Event::default().data(sse_json))
-    });
-
-    warp::sse::reply(stream)
+    }
+    (v_array, c_array, is_progress)
 }
 
 // 0: RC on, 1: RC off, 2: Power on, 3: Power off
@@ -371,7 +371,12 @@ fn set_voltage(nums: Vec<isize>) -> bool {
             if count == mhv4_data_array.len() {
                 break;
             }
-            std::thread::sleep(Duration::from_millis(waiting_time));
+
+            if waiting_time > (60 * (mhv4_data_array.len() - count)) as u64 {
+                std::thread::sleep(Duration::from_millis(
+                    waiting_time - 60 * ((mhv4_data_array.len() - count) as u64),
+                ));
+            }
         }
 
         {
@@ -394,7 +399,7 @@ fn port_write_and_read(command: String) -> Result<Vec<String>, io::Error> {
     {
         let mut port = PORT.get().unwrap().lock().unwrap();
         port.write(command.as_bytes()).expect("Write failed!");
-        std::thread::sleep(Duration::from_millis(ARGS.get().unwrap().read_time));
+        std::thread::sleep(Duration::from_millis(50));
 
         size = match port.read(buf.as_mut_slice()) {
             Ok(t) => t,
@@ -403,6 +408,7 @@ fn port_write_and_read(command: String) -> Result<Vec<String>, io::Error> {
                 return Ok(dummy);
             }
         };
+        std::thread::sleep(Duration::from_millis(10));
     }
     let bytes = &buf[..size];
     let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
@@ -446,7 +452,10 @@ async fn main() {
         .and(warp::get())
         .map(|| get_mhv4_data());
 
-    let sse_route = warp::path("sse").and(warp::get()).map(|| sse_handler());
+    let sse_route = warp::path("sse").and(warp::get()).map(|| {
+        let stream = get_sse_stream();
+        warp::sse::reply(warp::sse::keep_alive().stream(stream))
+    });
 
     let status_route = warp::path("status")
         .and(warp::post())
