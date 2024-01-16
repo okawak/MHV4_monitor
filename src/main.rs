@@ -191,7 +191,7 @@ fn get_sse_stream() -> impl Stream<Item = Result<warp::sse::Event, warp::Error>>
         let sse_json = serde_json::to_string(&result).unwrap();
         let sse_data = warp::sse::Event::default().data(sse_json);
 
-        sleep(Duration::from_millis(300)).await;
+        sleep(Duration::from_millis(100)).await;
 
         Some((Ok(sse_data), ()))
     })
