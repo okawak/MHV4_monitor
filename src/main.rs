@@ -10,7 +10,7 @@ use std::env;
 use std::io::{self, Read, Write};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
-use tokio::time::Duration;
+use tokio::time::{sleep, Duration};
 use warp::Filter;
 use warp::Reply;
 
@@ -190,6 +190,8 @@ fn get_sse_stream() -> impl Stream<Item = Result<warp::sse::Event, warp::Error>>
         let result = read_monitor_value().await;
         let sse_json = serde_json::to_string(&result).unwrap();
         let sse_data = warp::sse::Event::default().data(sse_json);
+
+        sleep(Duration::from_millis(300)).await;
 
         Some((Ok(sse_data), ()))
     })
