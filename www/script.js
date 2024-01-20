@@ -8,41 +8,23 @@ const table_title = [
   "about",
   "target",
 ];
-const mhv4_names = [
-  "tel2 dE",
-  "tel3 dE",
-  "tel5 Eb",
-  "tel6 Eb",
-  "tel2 Ec",
-  "tel2 Ed",
-  "tel3 Eb",
-  "tel3 Ec",
-  "tel1 dE",
-  "tel4 dE",
-  "tel5 dE",
-  "tel6 dE",
-  "tel1 Eb",
-  "tel1 Ec",
-  "tel1 Ed",
-  "tel2 Eb",
-];
-const mhv4_targets = [
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
-  "target voltage xxx V",
+const mhv4_discriptions = [
+  ["tel2 dE", "target voltage xxx V"],
+  ["tel3 dE", "target voltage xxx V"],
+  ["tel5 Eb", "target voltage xxx V"],
+  ["tel6 Eb", "target voltage xxx V"],
+  ["tel2 Ec", "target voltage xxx V"],
+  ["tel2 Ed", "target voltage xxx V"],
+  ["tel3 Eb", "target voltage xxx V"],
+  ["tel3 Ec", "target voltage xxx V"],
+  ["tel1 dE", "target voltage xxx V"],
+  ["tel4 dE", "target voltage xxx V"],
+  ["tel5 dE", "target voltage xxx V"],
+  ["tel6 dE", "target voltage xxx V"],
+  ["tel1 Eb", "target voltage xxx V"],
+  ["tel1 Ec", "target voltage xxx V"],
+  ["tel1 Ed", "target voltage xxx V"],
+  ["tel2 Eb", "target voltage xxx V"],
 ];
 
 function printwindow() {
@@ -120,8 +102,8 @@ function createTable(data) {
     row.appendChild(createCell(""));
     row.appendChild(createCell(""));
 
-    row.appendChild(createCell(mhv4_names[index]));
-    row.appendChild(createCell(mhv4_targets[index]));
+    row.appendChild(createCell(mhv4_discriptions[index][0]));
+    row.appendChild(createCell(mhv4_discriptions[index][1]));
 
     tbody.appendChild(row);
   });
@@ -155,19 +137,25 @@ function setupSSE() {
       for (let i = 0; i < buf.length; i += 1) {
         for (let j = 0; j < 4; j += 1) {
           buf[i].push([]);
-          buf[i][j].push({ x: Date.now(), y: data[1][4 * i + j] });
+          buf[i][j].push({
+            x: Date.now(),
+            y: (data[1][4 * i + j] * 0.001).toFixed(3),
+          });
         }
       }
     } else {
       for (let i = 0; i < buf.length; i += 1) {
         for (let j = 0; j < 4; j += 1) {
-          buf[i][j].push({ x: Date.now(), y: data[1][4 * i + j] });
+          buf[i][j].push({
+            x: Date.now(),
+            y: (data[1][4 * i + j] * 0.001).toFixed(3),
+          });
         }
       }
     }
   };
   eventSource.onerror = function (error) {
-    console.error("SSE connection opened:", error);
+    console.error("SSE connection error:", error);
   };
 }
 
@@ -214,12 +202,12 @@ const chartBGColors = [
 function CreateChart() {
   const chartsContainer = document.getElementById("chartsContainer");
   let datasets = [];
-  for (let i = 0; i < mhv4_names.length / 4; i++) {
+  for (let i = 0; i < mhv4_discriptions.length / 4; i++) {
     datasets.push([]);
     for (let j = 0; j < 4; j++) {
       datasets[i].push({
         data: [],
-        label: mhv4_names[4 * i + j],
+        label: mhv4_discriptions[4 * i + j][0],
         borderColor: chartColors[j],
         backgroundColor: chartBGColors[j],
         fill: false,
@@ -228,7 +216,7 @@ function CreateChart() {
     }
   }
 
-  for (let i = 0; i < mhv4_names.length / 4; i++) {
+  for (let i = 0; i < mhv4_discriptions.length / 4; i++) {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     const chart = new Chart(ctx, {
@@ -238,15 +226,19 @@ function CreateChart() {
       },
       options: {
         scales: {
-          x: [
-            {
-              type: "realtime",
+          x: {
+            type: "realtime",
+          },
+          y: {
+            title: {
+              display: true,
+              text: "current (uA)",
             },
-          ],
+          },
         },
         plugins: {
           title: {
-            text: "MHV4 id=" + i,
+            text: "Leak Current (MHV4 id=" + i + ")",
             display: true,
           },
           streaming: {
