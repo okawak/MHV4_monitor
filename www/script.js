@@ -6,25 +6,48 @@ const table_title = [
   "Voltage (V)",
   "Current (uA)",
   "about",
+  "target",
 ];
-const mhv4_discription = [
-  "telx Ex, target voltage xxx V",
-  "1-2",
-  "1-3",
-  "1-4",
-  "2-1",
-  "2-2",
-  "2-3",
-  "2-4",
-  "3-1",
-  "3-2",
-  "3-3",
-  "3-4",
-  "4-1",
-  "4-2",
-  "4-3",
-  "4-4",
+const mhv4_names = [
+  "tel2 dE",
+  "tel3 dE",
+  "tel5 Eb",
+  "tel6 Eb",
+  "tel2 Ec",
+  "tel2 Ed",
+  "tel3 Eb",
+  "tel3 Ec",
+  "tel1 dE",
+  "tel4 dE",
+  "tel5 dE",
+  "tel6 dE",
+  "tel1 Eb",
+  "tel1 Ec",
+  "tel1 Ed",
+  "tel2 Eb",
 ];
+const mhv4_targets = [
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+  "target voltage xxx V",
+];
+
+function printwindow() {
+  window.print();
+}
 
 async function DisplayData() {
   try {
@@ -97,7 +120,8 @@ function createTable(data) {
     row.appendChild(createCell(""));
     row.appendChild(createCell(""));
 
-    row.appendChild(createCell(mhv4_discription[index]));
+    row.appendChild(createCell(mhv4_names[index]));
+    row.appendChild(createCell(mhv4_targets[index]));
 
     tbody.appendChild(row);
   });
@@ -113,6 +137,7 @@ function createCell(text) {
   return cell;
 }
 
+var buf = [];
 function setupSSE() {
   const eventSource = new EventSource("/sse");
   eventSource.onopen = function (event) {
@@ -123,6 +148,23 @@ function setupSSE() {
     const data = JSON.parse(event.data);
     updateTable(data);
     animateCell();
+    if (buf.length == 0) {
+      for (let i = 0; i < data[1].length; i += 4) {
+        buf.push([]);
+      }
+      for (let i = 0; i < buf.length; i += 1) {
+        for (let j = 0; j < 4; j += 1) {
+          buf[i].push([]);
+          buf[i][j].push({ x: Date.now(), y: data[1][4 * i + j] });
+        }
+      }
+    } else {
+      for (let i = 0; i < buf.length; i += 1) {
+        for (let j = 0; j < 4; j += 1) {
+          buf[i][j].push({ x: Date.now(), y: data[1][4 * i + j] });
+        }
+      }
+    }
   };
   eventSource.onerror = function (error) {
     console.error("SSE connection opened:", error);
@@ -152,6 +194,79 @@ function updateTable(data) {
     } else {
       c_cell.textContent = (data[1][i] * 0.001).toFixed(3);
     }
+  }
+}
+
+const chartColors = [
+  "rgb(255, 99, 132)",
+  "rgb(255, 159, 64)",
+  "rgb(75, 192, 192)",
+  "rgb(54, 162, 235)",
+];
+
+const chartBGColors = [
+  "rgba(255, 99, 132, 0.5)",
+  "rgba(255, 159, 64, 0.5)",
+  "rgba(75, 192, 192, 0.5)",
+  "rgba(54, 162, 235, 0.5)",
+];
+
+function CreateChart() {
+  const chartsContainer = document.getElementById("chartsContainer");
+  let datasets = [];
+  for (let i = 0; i < mhv4_names.length / 4; i++) {
+    datasets.push([]);
+    for (let j = 0; j < 4; j++) {
+      datasets[i].push({
+        data: [],
+        label: mhv4_names[4 * i + j],
+        borderColor: chartColors[j],
+        backgroundColor: chartBGColors[j],
+        fill: false,
+        lineTension: 0,
+      });
+    }
+  }
+
+  for (let i = 0; i < mhv4_names.length / 4; i++) {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        datasets: datasets[i],
+      },
+      options: {
+        scales: {
+          x: [
+            {
+              type: "realtime",
+            },
+          ],
+        },
+        plugins: {
+          title: {
+            text: "MHV4 id=" + i,
+            display: true,
+          },
+          streaming: {
+            duration: 600000,
+            refresh: 5000,
+            onRefresh: function (chart) {
+              for (let j = 0; j < 4; j++) {
+                Array.prototype.push.apply(
+                  chart.data.datasets[j].data,
+                  buf[i][j]
+                );
+              }
+              buf = [];
+            },
+          },
+        },
+      },
+    });
+    chart.canvas = canvas;
+    chartsContainer.appendChild(chart.canvas);
   }
 }
 
@@ -237,6 +352,7 @@ async function ApplyHV() {
 document.addEventListener("DOMContentLoaded", () => {
   DisplayData();
   setupSSE();
+  CreateChart();
 });
 
 function Time() {

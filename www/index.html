@@ -4,10 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" type="text/css" href="custom.css" />
     <title>MHV4 monitor</title>
+
+    <!-- include Chart.js -->
+    <!-- for chartjs4
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0"></script>
   </head>
 
   <body>
     <h1>MHV4 monitor</h1>
+    <button onclick="printwindow()">print</button>
     <span id="real_time"></span>
     <p>Green = ON, Red = OFF, Yellow = in progress</p>
 
@@ -34,6 +45,9 @@
     <h2>Table</h2>
     <div id="TableContainer"></div>
     <button id="applyButton" onclick="ApplyHV()">Apply</button>
+
+    <div style="height: 10px"></div>
+    <div id="chartsContainer"></div>
 
     <script src="script.js"></script>
   </body>
