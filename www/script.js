@@ -228,6 +228,19 @@ function CreateChart() {
         scales: {
           x: {
             type: "realtime",
+            realtime: {
+              duration: 600000,
+              refresh: 5000,
+              onRefresh: function (chart) {
+                for (let j = 0; j < 4; j++) {
+                  Array.prototype.push.apply(
+                    chart.data.datasets[j].data,
+                    buf[i][j]
+                  );
+                }
+                buf = [];
+              },
+            },
           },
           y: {
             title: {
@@ -240,19 +253,6 @@ function CreateChart() {
           title: {
             text: "Leak Current (MHV4 id=" + i + ")",
             display: true,
-          },
-          streaming: {
-            duration: 600000,
-            refresh: 5000,
-            onRefresh: function (chart) {
-              for (let j = 0; j < 4; j++) {
-                Array.prototype.push.apply(
-                  chart.data.datasets[j].data,
-                  buf[i][j]
-                );
-              }
-              buf = [];
-            },
           },
         },
       },
