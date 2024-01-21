@@ -4,6 +4,10 @@ html {
     font-size: 100.0%;
 }
 
+.real_time span {
+    display: block;
+}
+
 .status-container {
     display: flex;
     align-items: center;
