@@ -29,7 +29,10 @@ const mhv4_discriptions = [
   ["tel2 Eb", "target voltage xxx V"],
 ];
 
-var buf = []; // global buffer for Chart.js
+const duration = 600000; // Chart.js, ms
+let buf = new Array(mhv4_discriptions.length / 4)
+  .fill(0)
+  .map(() => new Array(4).fill(0)); // global buffer for Chart.js
 
 function printwindow() {
   window.print();
@@ -48,17 +51,6 @@ async function DisplayData() {
     createTable(data);
   } catch (error) {
     console.error("Error:", error);
-  }
-}
-
-function initializeBuffer() {
-  buf = [];
-  const Nchannel = mhv4_discriptions.length;
-  for (let i = 0; i < Nchannel / 4; i++) {
-    buf.push([]);
-    for (let j = 0; j < 4; j++) {
-      buf[i].push([]);
-    }
   }
 }
 
@@ -135,7 +127,6 @@ function createCell(text) {
   return cell;
 }
 
-var buf = [];
 function setupSSE() {
   const eventSource = new EventSource("/sse");
   eventSource.onopen = function (event) {
@@ -149,10 +140,7 @@ function setupSSE() {
     if (!data[1].includes(-100000)) {
       for (let i = 0; i < buf.length; i++) {
         for (let j = 0; j < 4; j++) {
-          buf[i][j].push({
-            x: Date.now(),
-            y: (data[1][4 * i + j] * 0.001).toFixed(3),
-          });
+          buf[i][j] = (data[1][4 * i + j] * 0.001).toFixed(3);
         }
       }
     }
@@ -232,16 +220,22 @@ function CreateChart() {
           x: {
             type: "realtime",
             realtime: {
-              duration: 600000,
+              duration: duration,
               refresh: 5000,
               onRefresh: function (chart) {
-                for (let j = 0; j < 4; j++) {
-                  Array.prototype.push.apply(
-                    chart.data.datasets[j].data,
-                    buf[i][j]
+                const now = Date.now();
+                buf[i].forEach((data, dataIndex) => {
+                  const dataset = chart.data.datasets[dataIndex];
+                  dataset.data.push({
+                    x: now,
+                    y: data,
+                  });
+                });
+                for (j = 0; j < chart.data.datasets.length; j++) {
+                  chart.data.datasets[j].data.filter(
+                    (point) => now - point.x < duration
                   );
                 }
-                initializeBuffer();
               },
             },
           },

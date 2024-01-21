@@ -4,8 +4,10 @@ html {
     font-size: 100.0%;
 }
 
-.real_time span {
+span {
     display: block;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 .status-container {
