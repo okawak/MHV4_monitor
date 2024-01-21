@@ -6,8 +6,10 @@ const table_title = [
   "Voltage (V)",
   "Current (uA)",
   "about",
-  "target",
+  "discription",
 ];
+// the array number are needed to set actual channel number
+// if you don't use some of the channel, please write like ["-", "-"]
 const mhv4_discriptions = [
   ["tel2 dE", "target voltage xxx V"],
   ["tel3 dE", "target voltage xxx V"],
@@ -27,6 +29,8 @@ const mhv4_discriptions = [
   ["tel2 Eb", "target voltage xxx V"],
 ];
 
+var buf = []; // global buffer for Chart.js
+
 function printwindow() {
   window.print();
 }
@@ -39,10 +43,22 @@ async function DisplayData() {
     }
     const data = await response.json();
     console.log(data);
+    initializeBuffer();
     setStatus(data);
     createTable(data);
   } catch (error) {
     console.error("Error:", error);
+  }
+}
+
+function initializeBuffer() {
+  buf = [];
+  const Nchannel = mhv4_discriptions.length;
+  for (let i = 0; i < Nchannel / 4; i++) {
+    buf.push([]);
+    for (let j = 0; j < 4; j++) {
+      buf[i].push([]);
+    }
   }
 }
 
@@ -130,22 +146,9 @@ function setupSSE() {
     const data = JSON.parse(event.data);
     updateTable(data);
     animateCell();
-    if (buf.length == 0) {
-      for (let i = 0; i < data[1].length; i += 4) {
-        buf.push([]);
-      }
-      for (let i = 0; i < buf.length; i += 1) {
-        for (let j = 0; j < 4; j += 1) {
-          buf[i].push([]);
-          buf[i][j].push({
-            x: Date.now(),
-            y: (data[1][4 * i + j] * 0.001).toFixed(3),
-          });
-        }
-      }
-    } else {
-      for (let i = 0; i < buf.length; i += 1) {
-        for (let j = 0; j < 4; j += 1) {
+    if (!data[1].includes(-100000)) {
+      for (let i = 0; i < buf.length; i++) {
+        for (let j = 0; j < 4; j++) {
           buf[i][j].push({
             x: Date.now(),
             y: (data[1][4 * i + j] * 0.001).toFixed(3),
@@ -238,7 +241,7 @@ function CreateChart() {
                     buf[i][j]
                   );
                 }
-                buf = [];
+                initializeBuffer();
               },
             },
           },
