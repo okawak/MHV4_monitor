@@ -137,11 +137,12 @@ function setupSSE() {
     const data = JSON.parse(event.data);
     updateTable(data);
     animateCell();
-    if (!data[1].includes(-100000)) {
-      for (let i = 0; i < buf.length; i++) {
-        for (let j = 0; j < 4; j++) {
-          buf[i][j] = (data[1][4 * i + j] * 0.001).toFixed(3);
+    for (let i = 0; i < buf.length; i++) {
+      for (let j = 0; j < 4; j++) {
+        if (data[1][4 * i + j] == -100000) {
+          continue;
         }
+        buf[i][j] = (data[1][4 * i + j] * 0.001).toFixed(3);
       }
     }
   };
