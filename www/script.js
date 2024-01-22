@@ -46,7 +46,6 @@ async function DisplayData() {
     }
     const data = await response.json();
     console.log(data);
-    initializeBuffer();
     setStatus(data);
     createTable(data);
   } catch (error) {
