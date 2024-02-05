@@ -147,6 +147,7 @@ function setupSSE() {
   };
   eventSource.onerror = function (error) {
     console.error("SSE connection error:", error);
+    updateErrorTable();
   };
 }
 
@@ -173,6 +174,18 @@ function updateTable(data) {
     } else {
       c_cell.textContent = (data[1][i] * 0.001).toFixed(3);
     }
+  }
+}
+
+function updateErrorTable() {
+  const table = document.querySelector("table");
+  table.style.border = "2px solid red";
+  for (let i = 0; i < table.rows.length - 1; i++) {
+    const row = table.rows[i + 1];
+    const v_cell = row.cells[4];
+    const c_cell = row.cells[5];
+    v_cell.textContent = "read error!";
+    c_cell.textContent = "read error!";
   }
 }
 
