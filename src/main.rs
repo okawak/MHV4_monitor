@@ -9,7 +9,7 @@ use shared::SharedData;
 use std::env;
 use std::error::Error;
 use std::fmt;
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::result::Result;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
@@ -78,7 +78,7 @@ static ARGS: OnceLock<MyArguments> = OnceLock::new();
 static PORT: OnceLock<Arc<Mutex<Box<dyn SerialPort>>>> = OnceLock::new();
 static DATA: OnceLock<Arc<Mutex<SharedData>>> = OnceLock::new();
 
-async fn initialize_status() -> Result<(), io::Error> {
+async fn initialize_status() -> Result<(), MyError> {
     let mut mhv4_array: Vec<MHV4Data> = Vec::new();
 
     let mut is_rc = false;
