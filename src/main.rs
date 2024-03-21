@@ -5,80 +5,19 @@ use clap::Parser;
 use futures::{Stream, StreamExt};
 use mhv4::MHV4Data;
 use serialport::SerialPort;
-use shared::SharedData;
-use std::env;
-use std::error::Error;
-use std::fmt;
+use shared::{MyArguments, OperationError, SharedData};
 use std::io::{Read, Write};
 use std::result::Result;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use tokio::time::{sleep, Duration};
-use warp::sse::Event;
-use warp::Filter;
-use warp::Reply;
-
-#[derive(Debug, Parser)]
-#[clap(
-    name = env!("CARGO_PKG_NAME"),
-    version = env!("CARGO_PKG_VERSION"),
-    author = env!("CARGO_PKG_AUTHORS"),
-    about = env!("CARGO_PKG_DESCRIPTION"),
-)]
-struct MyArguments {
-    #[clap(short = 'p', long = "port_name", default_value = "/dev/ttyUSB0")]
-    port_name: String,
-
-    #[clap(short = 'r', long = "port_rate", default_value = "9600")]
-    port_rate: u32,
-
-    #[clap(short = 's', long = "apply_hv_step", default_value = "5")] // 1 -> 0.1 V
-    voltage_step: isize,
-
-    #[clap(short = 'w', long = "waiting_time_ms", default_value = "500")]
-    waiting_time: u64,
-
-    #[clap(short = 'm', long = "max_voltage", default_value = "3000")] // 1 -> 0.1 V
-    max_voltage: isize,
-
-    #[clap(short = 'v', long = "verbose")]
-    verbose: bool,
-}
-
-#[derive(Debug)]
-enum MyError {
-    DataGetError,
-    DataLockError,
-    PortGetError,
-    PortLockError,
-    PortWriteError,
-    PortReadError,
-    JSONSerializeError,
-    ReadingError,
-}
-
-impl fmt::Display for MyError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            MyError::DataGetError => write!(f, "Data Get Error"),
-            MyError::DataLockError => write!(f, "Data Lock Error"),
-            MyError::PortGetError => write!(f, "Port Get Error"),
-            MyError::PortLockError => write!(f, "Port Lock Error"),
-            MyError::PortWriteError => write!(f, "Port Write Error"),
-            MyError::PortReadError => write!(f, "Port Read Error"),
-            MyError::JSONSerializeError => write!(f, "JSON Serialize Error"),
-            MyError::ReadingError => write!(f, "Reading Error"),
-        }
-    }
-}
-
-impl Error for MyError {}
+use warp::{sse::Event, Filter, Reply};
 
 static ARGS: OnceLock<MyArguments> = OnceLock::new();
 static PORT: OnceLock<Arc<Mutex<Box<dyn SerialPort>>>> = OnceLock::new();
 static DATA: OnceLock<Arc<Mutex<SharedData>>> = OnceLock::new();
 
-async fn initialize_status() -> Result<(), MyError> {
+async fn initialize_status() -> Result<(), OperationError> {
     let mut mhv4_array: Vec<MHV4Data> = Vec::new();
 
     let mut is_rc = false;
@@ -88,21 +27,21 @@ async fn initialize_status() -> Result<(), MyError> {
 
     for bus in 0..2 {
         let command = format!("sc {}\r", bus);
-        println!("Init: {}", command);
+        log::info!("command: {}", command);
+
         let mut buf: Vec<u8> = vec![0; 300];
         let size: usize;
         {
-            let mut port = PORT.get().unwrap().lock().unwrap();
-            port.write(command.as_bytes()).expect("Write failed!");
+            let mut port = PORT.get().ok_or(OperationError::PortGetError)?.lock()?;
+            port.write(command.as_bytes())?;
 
             std::thread::sleep(Duration::from_millis(100));
-
-            size = port.read(buf.as_mut_slice()).expect("Found no data!");
+            size = port.read(buf.as_mut_slice())?;
         }
         let bytes = &buf[..size];
-        let string = String::from_utf8(bytes.to_vec()).expect("Failed to convert");
+        let string = String::from_utf8(bytes.to_vec())?;
         let modules = string.split("\n\r").collect::<Vec<_>>();
-        println!("{:?}", modules);
+        log::info!("result: {:?}", modules);
 
         for dev in 0..16 {
             let module = modules[dev + 2].to_string();
@@ -113,7 +52,7 @@ async fn initialize_status() -> Result<(), MyError> {
 
             let mut idc_str = datas[1].to_string();
             idc_str.pop();
-            let idc: usize = idc_str.parse().unwrap();
+            let idc: usize = idc_str.parse()?;
             if idc != 27 && idc != 17 {
                 continue;
             }
@@ -129,11 +68,15 @@ async fn initialize_status() -> Result<(), MyError> {
             for ch in 0..4 {
                 if is_on_first {
                     let command = format!("re {} {} {}\r", bus, dev, ch + 36);
-                    let read_array =
-                        port_write_and_read(command).expect("Error in port communication");
+                    let read_array = port_write_and_read(command)?;
                     if read_array.len() == 3 {
                         let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-                        let status: usize = datas.last().unwrap().to_string().parse().unwrap();
+                        //let status: usize = datas.last().unwrap().to_string().parse().unwrap();
+                        let status: usize = datas
+                            .last()
+                            .ok_or(OperationError::DataGetError)?
+                            .to_string()
+                            .parse()?;
                         if status == 1 {
                             is_on = true;
                         }
@@ -146,17 +89,22 @@ async fn initialize_status() -> Result<(), MyError> {
                 let current: isize;
                 loop {
                     let command = format!("re {} {} {}\r", bus, dev, ch + 32);
-                    let read_array =
-                        port_write_and_read(command).expect("Error in port communication");
+                    let read_array = port_write_and_read(command)?;
                     if read_array.len() != 3 {
                         continue;
                     } else {
                         let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-                        let voltage: isize = datas.last().unwrap().to_string().parse().unwrap();
+                        let voltage: isize = datas
+                            .last()
+                            .ok_or(OperationError::DataGetError)?
+                            .to_string()
+                            .parse()?;
                         if voltage != tmp {
                             tmp = voltage;
                             continue;
-                        } else if voltage.abs() > ARGS.get().unwrap().max_voltage {
+                        } else if voltage.abs()
+                            > ARGS.get().ok_or(OperationError::ArgumentError)?.max_voltage
+                        {
                             // maximum voltage (for reading error)
                             continue;
                         } else {
@@ -175,7 +123,8 @@ async fn initialize_status() -> Result<(), MyError> {
         is_on,
         is_rc,
     )));
-    DATA.set(shared_data).expect("Failed to set DATA OnceLock");
+    DATA.set(shared_data)
+        .map_err(|_| OperationError::OnceLockError)?;
 
     Ok(())
 }
@@ -218,7 +167,7 @@ fn get_mhv4_data() -> impl warp::Reply {
 }
 
 // SSE endpoint
-fn get_sse_stream() -> impl Stream<Item = Result<Event, MyError>> {
+fn get_sse_stream() -> impl Stream<Item = Result<Event, OperationError>> {
     futures::stream::unfold((), |()| async move {
         match read_monitor_value().await {
             Ok(result) => match serde_json::to_string(&result) {
@@ -226,16 +175,16 @@ fn get_sse_stream() -> impl Stream<Item = Result<Event, MyError>> {
                     // normal process
                     let sse_data = warp::sse::Event::default().data(sse_json);
                     sleep(Duration::from_millis(100)).await;
-                    Some((Ok::<_, MyError>(sse_data), ()))
+                    Some((Ok::<_, OperationError>(sse_data), ()))
                 }
                 Err(e) => {
                     eprintln!("JSON serialization error: {:?}", e);
-                    Some((Err(MyError::JSONSerializeError), ()))
+                    Some((Err(OperationError::JSONSerializeError), ()))
                 }
             },
             Err(e) => {
                 eprintln!("Error reading monitor value: {:?}", e);
-                Some((Err(MyError::ReadingError), ()))
+                Some((Err(OperationError::ReadingError), ()))
             }
         }
     })
@@ -247,7 +196,7 @@ fn get_sse_stream() -> impl Stream<Item = Result<Event, MyError>> {
     })
 }
 
-async fn read_monitor_value() -> Result<(Vec<isize>, Vec<isize>, bool), MyError> {
+async fn read_monitor_value() -> Result<(Vec<isize>, Vec<isize>, bool), OperationError> {
     let mhv4_data_array: Vec<MHV4Data>;
     let is_progress: bool;
     {
@@ -257,9 +206,9 @@ async fn read_monitor_value() -> Result<(Vec<isize>, Vec<isize>, bool), MyError>
                     mhv4_data_array = data.get_data();
                     is_progress = data.get_progress();
                 }
-                Err(_) => return Err(MyError::DataLockError),
+                Err(_) => return Err(OperationError::DataLockError),
             },
-            None => return Err(MyError::DataGetError),
+            None => return Err(OperationError::DataGetError),
         }
     }
 
@@ -449,67 +398,91 @@ fn set_voltage(nums: Vec<isize>) -> bool {
     true
 }
 
-fn port_write_and_read(command: String) -> Result<Vec<String>, MyError> {
-    if ARGS.get().unwrap().verbose {
-        println!("{}", command);
-    }
+fn port_write_and_read(command: String) -> Result<Vec<String>, OperationError> {
+    log::debug!("command: {}", command);
 
     let mut buf: Vec<u8> = vec![0; 100];
     let size: usize;
     {
-        let mut port = PORT
-            .get()
-            .ok_or(MyError::PortGetError)?
-            .lock()
-            .map_err(|_| MyError::PortLockError)?;
-        port.write(command.as_bytes())
-            .map_err(|_| MyError::PortWriteError)?;
+        let mut port = PORT.get().ok_or(OperationError::PortGetError)?.lock()?;
+        port.write(command.as_bytes())?;
         std::thread::sleep(Duration::from_millis(50));
 
-        size = port
-            .read(buf.as_mut_slice())
-            .map_err(|_| MyError::PortReadError)?;
+        size = port.read(buf.as_mut_slice())?;
         std::thread::sleep(Duration::from_millis(10));
     }
     let bytes = &buf[..size];
-    let string = String::from_utf8(bytes.to_vec()).map_err(|_| MyError::PortReadError)?;
+    let string = String::from_utf8(bytes.to_vec())?;
     let read_array = string.split("\n\r").collect::<Vec<_>>();
     let vec = read_array.iter().map(|&s| s.to_string()).collect();
 
     Ok(vec)
 }
 
-#[tokio::main]
-async fn main() {
-    // argument parser
-    let args = MyArguments::parse();
-    ARGS.set(args).expect("Failed to set ARGS OnceLock");
+//#[derive(Serialize)]
+//struct ErrorResponse {
+//    code: u16,
+//    message: String,
+//}
+//
+//async fn send_rejection(err: Rejection) -> Result<impl Reply, std::convert::Infallible> {
+//    if let Some(my_err) = err.find::<OperationError>() {
+//        let json = warp::reply::json(&ErrorResponse {
+//            code: StatusCode::BAD_REQUEST.as_u16(),
+//            message: my_err.to_string(),
+//        });
+//        Ok(warp::reply::with_status(json, StatusCode::BAD_REQUEST))
+//    } else {
+//        let json = warp::reply::json(&ErrorResponse {
+//            code: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
+//            message: "unknown error".into(),
+//        });
+//        Ok(warp::reply::with_status(
+//            json,
+//            StatusCode::INTERNAL_SERVER_ERROR,
+//        ))
+//    }
+//}
 
-    // init the logger (not inpremented)
+#[tokio::main]
+async fn main() -> Result<(), OperationError> {
+    // init the logger
     pretty_env_logger::init();
+    log::info!("Started the MHV4_monitor server!");
+
+    // argument parser
+    log::debug!("trying to get command line arguments...");
+    let args = MyArguments::parse();
+    ARGS.set(args).map_err(|_| OperationError::OnceLockError)?;
+    log::debug!("success to get command line arguments");
 
     // port connection
+    log::debug!(
+        "trying to open serial port from {}...",
+        ARGS.get().ok_or(OperationError::ArgumentError)?.port_name
+    );
     let port = serialport::new(
-        &ARGS.get().expect("arguments not set").port_name,
-        ARGS.get().expect("arguments not set").port_rate,
+        &ARGS.get().ok_or(OperationError::ArgumentError)?.port_name,
+        ARGS.get().ok_or(OperationError::ArgumentError)?.port_rate,
     )
     .stop_bits(serialport::StopBits::One)
     .data_bits(serialport::DataBits::Eight)
     .parity(serialport::Parity::None)
     .timeout(Duration::from_millis(100))
-    .open()
-    .expect("Failed to open serial port");
+    .open()?;
 
     // get Mutex key
     let port = Arc::new(Mutex::new(port));
-    PORT.set(port).expect("Failed to set PORT OnceLock");
+    PORT.set(port).map_err(|_| OperationError::OnceLockError)?;
+    log::debug!("success to open serial port!");
 
     // main
-    initialize_status()
-        .await
-        .expect("Failed to initialize serial port");
+    log::info!("Initializing...");
+    initialize_status().await?;
+    log::info!("Initialization is completed!");
 
-    let get_mhv4_data_route = warp::path("mhv4_data")
+    log::info!("Setting the routing...");
+    let mhv4_data_route = warp::path("mhv4_data")
         .and(warp::get())
         .map(|| get_mhv4_data());
 
@@ -537,10 +510,12 @@ async fn main() {
     let static_files = warp::fs::dir("www");
 
     let routes = static_files
-        .or(get_mhv4_data_route)
+        .or(mhv4_data_route)
         .or(sse_route)
         .or(status_route)
         .or(apply_route);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
+
+    Ok(())
 }
