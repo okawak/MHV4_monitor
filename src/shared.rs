@@ -29,6 +29,10 @@ impl SharedData {
     pub fn set_current(&mut self, id: usize, in_current: isize) {
         self.mhv4_data_array[id].set_current(in_current);
     }
+
+    pub fn set_onoff(&mut self, id: usize, do_on: bool) {
+        self.mhv4_data_array[id].is_on = do_on;
+    }
 }
 
 #[derive(Debug, Parser)]
@@ -67,8 +71,7 @@ pub enum OperationError {
     MutexPoisonError,
     PortIOError,
     DataGetError,
-    DataLockError,
-    JSONSerializeError,
+    JSONSerializeError(serde_json::Error),
     ReadingError,
     SharedDataError,
 }
@@ -85,9 +88,10 @@ impl fmt::Display for OperationError {
             OperationError::MutexPoisonError => write!(f, "Mutex Error"),
             OperationError::PortIOError => write!(f, "Port IO Error"),
             OperationError::DataGetError => write!(f, "Data Get Error, no read data?"),
-            OperationError::DataLockError => write!(f, "Data Lock Error"),
-            OperationError::JSONSerializeError => write!(f, "JSON Serialize Error"),
-            OperationError::ReadingError => write!(f, "Reading Error"),
+            OperationError::JSONSerializeError(ref err) => {
+                write!(f, "JSON Serialize Error: {}", err)
+            }
+            OperationError::ReadingError => write!(f, "SSE Reading Error"),
             OperationError::SharedDataError => write!(f, "Could not get shared data"),
         }
     }

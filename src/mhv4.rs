@@ -2,13 +2,13 @@ use serde::Serialize;
 
 #[derive(Serialize, Debug, Clone, Copy)]
 pub struct MHV4Data {
-    idc: usize,
-    bus: usize,
-    dev: usize,
-    ch: usize,
+    pub idc: usize,
+    pub bus: usize,
+    pub dev: usize,
+    pub ch: usize,
     current: isize,
-    is_on: bool,
-    is_positive: bool,
+    pub is_on: bool,
+    pub is_positive: bool,
 }
 
 impl MHV4Data {
@@ -30,10 +30,6 @@ impl MHV4Data {
             is_on: in_is_on,
             is_positive: in_is_positive,
         }
-    }
-
-    pub fn get_idc(self) -> usize {
-        self.idc
     }
 
     pub fn get_module_id(self) -> (usize, usize, usize) {
