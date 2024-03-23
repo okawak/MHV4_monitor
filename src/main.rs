@@ -5,7 +5,7 @@ use clap::Parser;
 use futures::{Stream, StreamExt};
 use mhv4::MHV4Data;
 use serialport::SerialPort;
-use shared::{MyArguments, OperationError, SharedData};
+use shared::{CLArguments, OperationError, SharedData};
 use std::io::{Read, Write};
 use std::result::Result;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -13,19 +13,21 @@ use std::thread;
 use tokio::time::{sleep, Duration};
 use warp::{sse::Event, Filter, Reply};
 
-static ARGS: OnceLock<MyArguments> = OnceLock::new();
+static ARGS: OnceLock<CLArguments> = OnceLock::new();
 static PORT: OnceLock<Arc<Mutex<Box<dyn SerialPort>>>> = OnceLock::new();
 static DATA: OnceLock<Arc<Mutex<SharedData>>> = OnceLock::new();
 
+// when the server started, this function will be read
 async fn initialize_status() -> Result<(), OperationError> {
+    log::info!("Initializing...");
     let mut mhv4_array: Vec<MHV4Data> = Vec::new();
 
+    // Check RC mode or not
     let mut is_rc = false;
-    let mut is_rc_first = true;
-    let mut is_on = false;
-    let mut is_on_first = true;
+    let mut is_first = true; // flag of first process or not
 
     for bus in 0..2 {
+        // scan command
         let command = format!("sc {}\r", bus);
         log::info!("command: {}", command);
 
@@ -54,40 +56,64 @@ async fn initialize_status() -> Result<(), OperationError> {
             idc_str.pop();
             let idc: usize = idc_str.parse()?;
             if idc != 27 && idc != 17 {
+                log::debug!("find not MHV4 module, idc = {}", idc);
                 continue;
             }
 
-            if is_rc_first {
+            if is_first {
                 let power_status = datas[2].to_string();
                 if power_status == "ON" {
                     is_rc = true;
-                    is_rc_first = false;
+                    is_first = false;
                 }
             }
 
             for ch in 0..4 {
-                if is_on_first {
-                    let command = format!("re {} {} {}\r", bus, dev, ch + 36);
-                    let read_array = port_write_and_read(command)?;
-                    if read_array.len() == 3 {
-                        let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-                        //let status: usize = datas.last().unwrap().to_string().parse().unwrap();
-                        let status: usize = datas
-                            .last()
-                            .ok_or(OperationError::DataGetError)?
-                            .to_string()
-                            .parse()?;
-                        if status == 1 {
-                            is_on = true;
-                        }
-                        is_on_first = false
+                // read channel status ON/OFF
+                let mut is_on = false;
+                let command = format!("re {} {} {}\r", bus, dev, ch + 36);
+                let read_array = port_write_and_read(command)?;
+
+                if read_array.len() == 3 {
+                    let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+                    let status: usize = datas
+                        .last()
+                        .ok_or(OperationError::DataGetError)?
+                        .to_string()
+                        .parse()?;
+                    if status == 1 {
+                        is_on = true;
                     }
+                } else {
+                    return Err(OperationError::DataGetError);
+                }
+
+                // read polarity
+                log::info!("polarity read is not supported for idc = 17?");
+                let mut is_positive = false;
+                let command = format!("re {} {} {}\r", bus, dev, ch + 46);
+                let read_array = port_write_and_read(command)?;
+
+                if read_array.len() == 3 {
+                    let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
+                    let status: usize = datas
+                        .last()
+                        .ok_or(OperationError::DataGetError)?
+                        .to_string()
+                        .parse()?;
+                    if status == 1 {
+                        is_positive = true;
+                    }
+                } else {
+                    return Err(OperationError::DataGetError);
                 }
 
                 // read current HV
                 let mut tmp: isize = 10_000;
                 let current: isize;
+                // sometimes read strange value, so check the stability using loop
                 loop {
+                    // read Voltage command
                     let command = format!("re {} {} {}\r", bus, dev, ch + 32);
                     let read_array = port_write_and_read(command)?;
                     if read_array.len() != 3 {
@@ -105,7 +131,7 @@ async fn initialize_status() -> Result<(), OperationError> {
                         } else if voltage.abs()
                             > ARGS.get().ok_or(OperationError::ArgumentError)?.max_voltage
                         {
-                            // maximum voltage (for reading error)
+                            // check if it is over maximum voltage (for reading error)
                             continue;
                         } else {
                             current = voltage.abs();
@@ -114,25 +140,32 @@ async fn initialize_status() -> Result<(), OperationError> {
                     }
                 }
 
-                mhv4_array.push(MHV4Data::new(idc, bus, dev, ch, current));
+                mhv4_array.push(MHV4Data::new(
+                    idc,
+                    bus,
+                    dev,
+                    ch,
+                    current,
+                    is_on,
+                    is_positive,
+                ));
             }
         }
     }
-    let shared_data = Arc::new(Mutex::new(SharedData::new(
-        mhv4_array.clone(),
-        is_on,
-        is_rc,
-    )));
+    //let shared_data = Arc::new(Mutex::new(SharedData::new(mhv4_array.clone(), is_rc)));
+    let shared_data = Arc::new(Mutex::new(SharedData::new(mhv4_array, is_rc)));
     DATA.set(shared_data)
         .map_err(|_| OperationError::OnceLockError)?;
 
+    log::info!("Initialization is completed!");
     Ok(())
 }
 
+// when the page is loaded, this function will be read.
 fn get_mhv4_data() -> impl warp::Reply {
     let mut shared_data = DATA.get().unwrap().lock().unwrap();
 
-    if shared_data.get_progress() {
+    if shared_data.is_progress {
         let mhv4_data_array = shared_data.get_data();
         for i in 0..mhv4_data_array.len() {
             let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
@@ -158,7 +191,7 @@ fn get_mhv4_data() -> impl warp::Reply {
             }
             shared_data.set_current(i, current);
         }
-        shared_data.set_progress(false);
+        shared_data.is_progress = false;
     }
 
     let obj = &shared_data.clone();
@@ -204,7 +237,7 @@ async fn read_monitor_value() -> Result<(Vec<isize>, Vec<isize>, bool), Operatio
             Some(data) => match data.lock() {
                 Ok(data) => {
                     mhv4_data_array = data.get_data();
-                    is_progress = data.get_progress();
+                    is_progress = data.is_progress;
                 }
                 Err(_) => return Err(OperationError::DataLockError),
             },
@@ -345,7 +378,7 @@ fn set_voltage(nums: Vec<isize>) -> bool {
     let mhv4_data_array: Vec<MHV4Data>;
     {
         let mut shared_data = DATA.get().unwrap().lock().unwrap();
-        shared_data.set_progress(true);
+        shared_data.is_progress = true;
         mhv4_data_array = shared_data.get_data();
     }
 
@@ -389,7 +422,7 @@ fn set_voltage(nums: Vec<isize>) -> bool {
 
         {
             let mut shared_data = DATA.get().unwrap().lock().unwrap();
-            shared_data.set_progress(false);
+            shared_data.is_progress = false;
             for i in 0..mhv4_data_array.len() {
                 shared_data.set_current(i, nums[i]);
             }
@@ -415,6 +448,8 @@ fn port_write_and_read(command: String) -> Result<Vec<String>, OperationError> {
     let string = String::from_utf8(bytes.to_vec())?;
     let read_array = string.split("\n\r").collect::<Vec<_>>();
     let vec = read_array.iter().map(|&s| s.to_string()).collect();
+
+    log::debug!("result: {:?}", vec);
 
     Ok(vec)
 }
@@ -452,7 +487,7 @@ async fn main() -> Result<(), OperationError> {
 
     // argument parser
     log::debug!("trying to get command line arguments...");
-    let args = MyArguments::parse();
+    let args = CLArguments::parse();
     ARGS.set(args).map_err(|_| OperationError::OnceLockError)?;
     log::debug!("success to get command line arguments");
 
@@ -477,9 +512,7 @@ async fn main() -> Result<(), OperationError> {
     log::debug!("success to open serial port!");
 
     // main
-    log::info!("Initializing...");
     initialize_status().await?;
-    log::info!("Initialization is completed!");
 
     log::info!("Setting the routing...");
     let mhv4_data_route = warp::path("mhv4_data")

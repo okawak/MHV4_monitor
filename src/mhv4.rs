@@ -7,6 +7,8 @@ pub struct MHV4Data {
     dev: usize,
     ch: usize,
     current: isize,
+    is_on: bool,
+    is_positive: bool,
 }
 
 impl MHV4Data {
@@ -16,6 +18,8 @@ impl MHV4Data {
         in_dev: usize,
         in_ch: usize,
         in_current: isize,
+        in_is_on: bool,
+        in_is_positive: bool,
     ) -> MHV4Data {
         MHV4Data {
             idc: in_idc,
@@ -23,6 +27,8 @@ impl MHV4Data {
             dev: in_dev,
             ch: in_ch,
             current: in_current,
+            is_on: in_is_on,
+            is_positive: in_is_positive,
         }
     }
 
