@@ -162,8 +162,13 @@ async fn initialize_status() -> Result<(), OperationError> {
 }
 
 // when the page is loaded, this function will be read.
-fn get_mhv4_data() -> impl warp::Reply {
-    let mut shared_data = DATA.get().unwrap().lock().unwrap();
+async fn get_mhv4_data() -> Result<impl warp::Reply, warp::Rejection> {
+    log::info!("getting current MHV4 status...");
+    let mut shared_data = DATA
+        .get()
+        .ok_or(OperationError::SharedDataError)?
+        .lock()
+        .map_err(|_| warp::reject::custom(OperationError::MutexPoisonError))?;
 
     if shared_data.is_progress {
         let mhv4_data_array = shared_data.get_data();
@@ -174,12 +179,17 @@ fn get_mhv4_data() -> impl warp::Reply {
             let current: isize;
             loop {
                 let command = format!("re {} {} {}\r", bus, dev, ch + 32);
-                let read_array = port_write_and_read(command).expect("Error in port communication");
+                let read_array = port_write_and_read(command)?;
                 if read_array.len() != 3 {
                     continue;
                 } else {
                     let datas = read_array[1].split_whitespace().collect::<Vec<_>>();
-                    let voltage: isize = datas.last().unwrap().to_string().parse().unwrap();
+                    let voltage: isize = datas
+                        .last()
+                        .ok_or(OperationError::DataGetError)?
+                        .to_string()
+                        .parse()
+                        .map_err(OperationError::ParseIntError)?;
                     if voltage != tmp {
                         tmp = voltage;
                         continue;
@@ -194,13 +204,16 @@ fn get_mhv4_data() -> impl warp::Reply {
         shared_data.is_progress = false;
     }
 
-    let obj = &shared_data.clone();
-    let data_json = serde_json::to_string(obj).unwrap_or_else(|_| "[]".to_string());
-    warp::reply::json(&data_json).into_response()
+    let obj = shared_data.clone();
+    let data_json = serde_json::to_string(&obj).unwrap_or_else(|_| "[]".to_string());
+
+    log::info!("complete to read the status, send to the web browser...");
+    Ok(warp::reply::json(&data_json).into_response())
 }
 
 // SSE endpoint
 fn get_sse_stream() -> impl Stream<Item = Result<Event, OperationError>> {
+    log::debug!("SSE handler start...");
     futures::stream::unfold((), |()| async move {
         match read_monitor_value().await {
             Ok(result) => match serde_json::to_string(&result) {
@@ -294,15 +307,14 @@ async fn read_monitor_value() -> Result<(Vec<isize>, Vec<isize>, bool), Operatio
     Ok((v_array, c_array, is_progress))
 }
 
-// 0: RC on, 1: RC off, 2: Power on, 3: Power off
-fn set_status(num: u32) -> bool {
+// 0: RC on, 1: RC off
+fn set_rcstatus(num: u32) -> bool {
     let mhv4_data_array: Vec<MHV4Data>;
     let current_rc: bool;
-    let current_on: bool;
     {
         let shared_data = DATA.get().unwrap().lock().unwrap();
         mhv4_data_array = shared_data.get_data();
-        (current_on, current_rc) = shared_data.get_status();
+        current_rc = shared_data.is_rc;
     }
 
     // remote ON
@@ -332,7 +344,7 @@ fn set_status(num: u32) -> bool {
 
         {
             let mut shared_data = DATA.get().unwrap().lock().unwrap();
-            shared_data.set_status(current_on, true);
+            shared_data.is_rc = true;
         }
     // remote OFF
     } else if num == 1 && current_rc {
@@ -344,33 +356,91 @@ fn set_status(num: u32) -> bool {
 
         {
             let mut shared_data = DATA.get().unwrap().lock().unwrap();
-            shared_data.set_status(current_on, false);
+            shared_data.is_rc = false;
         }
-    // power ON
-    } else if num == 2 && !current_on {
-        for i in 0..mhv4_data_array.len() {
-            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-            let command = format!("se {} {} {} 1\r", bus, dev, ch + 4);
-            let _ = port_write_and_read(command).expect("Error in port communication");
-        }
+        //// power ON
+        //} else if num == 2 && !current_on {
+        //    for i in 0..mhv4_data_array.len() {
+        //        let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+        //        let command = format!("se {} {} {} 1\r", bus, dev, ch + 4);
+        //        let _ = port_write_and_read(command).expect("Error in port communication");
+        //    }
 
-        {
-            let mut shared_data = DATA.get().unwrap().lock().unwrap();
-            shared_data.set_status(true, current_rc);
-        }
-    // power OFF
-    } else if num == 3 && current_on {
-        for i in 0..mhv4_data_array.len() {
-            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
-            let command = format!("se {} {} {} 0\r", bus, dev, ch + 4);
-            let _ = port_write_and_read(command).expect("Error in port communication");
-        }
+        //    {
+        //        let mut shared_data = DATA.get().unwrap().lock().unwrap();
+        //        shared_data.set_status(true, current_rc);
+        //    }
+        //// power OFF
+        //} else if num == 3 && current_on {
+        //    for i in 0..mhv4_data_array.len() {
+        //        let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+        //        let command = format!("se {} {} {} 0\r", bus, dev, ch + 4);
+        //        let _ = port_write_and_read(command).expect("Error in port communication");
+        //    }
 
-        {
-            let mut shared_data = DATA.get().unwrap().lock().unwrap();
-            shared_data.set_status(false, current_rc);
-        }
+        //    {
+        //        let mut shared_data = DATA.get().unwrap().lock().unwrap();
+        //        shared_data.set_status(false, current_rc);
+        //    }
     }
+    true
+}
+
+fn set_onoff(arr: Vec<bool>) -> bool {
+    log::debug!("{:?}", arr);
+    //let mhv4_data_array: Vec<MHV4Data>;
+    //{
+    //    let mut shared_data = DATA.get().unwrap().lock().unwrap();
+    //    shared_data.is_progress = true;
+    //    mhv4_data_array = shared_data.get_data();
+    //}
+
+    //let mut voltage_now_array: Vec<isize> =
+    //    mhv4_data_array.iter().map(|x| x.get_current()).collect();
+    //let mut count: usize = 0;
+    //let mut is_finish: Vec<bool> = vec![false; mhv4_data_array.len()];
+    //let step = ARGS.get().unwrap().voltage_step;
+    //let waiting_time = ARGS.get().unwrap().waiting_time;
+
+    //thread::spawn(move || {
+    //    loop {
+    //        for i in 0..mhv4_data_array.len() {
+    //            if voltage_now_array[i] == nums[i] {
+    //                if !is_finish[i] {
+    //                    is_finish[i] = true;
+    //                    count += 1;
+    //                }
+    //                continue;
+    //            } else if (voltage_now_array[i] - nums[i]).abs() < step {
+    //                voltage_now_array[i] = nums[i];
+    //            } else if voltage_now_array[i] < nums[i] {
+    //                voltage_now_array[i] += step;
+    //            } else {
+    //                voltage_now_array[i] -= step;
+    //            }
+    //            let (bus, dev, ch) = mhv4_data_array[i].get_module_id();
+    //            let command = format!("se {} {} {} {}\r", bus, dev, ch, voltage_now_array[i]);
+    //            let _ = port_write_and_read(command).expect("Error in port communication");
+    //        }
+    //        if count == mhv4_data_array.len() {
+    //            break;
+    //        }
+
+    //        if waiting_time > (60 * (mhv4_data_array.len() - count)) as u64 {
+    //            std::thread::sleep(Duration::from_millis(
+    //                waiting_time - 60 * ((mhv4_data_array.len() - count) as u64),
+    //            ));
+    //        }
+    //    }
+
+    //    {
+    //        let mut shared_data = DATA.get().unwrap().lock().unwrap();
+    //        shared_data.is_progress = false;
+    //        for i in 0..mhv4_data_array.len() {
+    //            shared_data.set_current(i, nums[i]);
+    //        }
+    //    }
+    //});
     true
 }
 
@@ -515,9 +585,11 @@ async fn main() -> Result<(), OperationError> {
     initialize_status().await?;
 
     log::info!("Setting the routing...");
+    //let index = warp::path::end().map(|| warp::fs::file("www/index.html"));
+
     let mhv4_data_route = warp::path("mhv4_data")
         .and(warp::get())
-        .map(|| get_mhv4_data());
+        .and_then(get_mhv4_data);
 
     let sse_route = warp::path("sse").and(warp::get()).map(|| {
         let stream = get_sse_stream();
@@ -528,7 +600,15 @@ async fn main() -> Result<(), OperationError> {
         .and(warp::post())
         .and(warp::body::json())
         .map(move |num: u32| {
-            let result = set_status(num);
+            let result = set_rcstatus(num);
+            warp::reply::json(&result)
+        });
+
+    let onoff_route = warp::path("onoff")
+        .and(warp::post())
+        .and(warp::body::json())
+        .map(move |arr: Vec<bool>| {
+            let result = set_onoff(arr);
             warp::reply::json(&result)
         });
 
@@ -546,7 +626,9 @@ async fn main() -> Result<(), OperationError> {
         .or(mhv4_data_route)
         .or(sse_route)
         .or(status_route)
+        .or(onoff_route)
         .or(apply_route);
+    //.or(index);
 
     warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 

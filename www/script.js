@@ -2,6 +2,9 @@ const table_title = [
   "bus",
   "dev",
   "ch",
+  "status",
+  "on/off",
+  "pol",
   "input (V)",
   "Voltage (V)",
   "Current (uA)",
@@ -94,6 +97,11 @@ function createTable(data) {
     row.appendChild(createCell(mod.bus));
     row.appendChild(createCell(mod.dev));
     row.appendChild(createCell(mod.ch));
+
+    // new field (development)
+    row.appendChild(createCell(""));
+    row.appendChild(createCell(""));
+    row.appendChild(createCell(""));
 
     // input field
     const inputCell = document.createElement("td");

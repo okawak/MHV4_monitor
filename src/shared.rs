@@ -26,14 +26,6 @@ impl SharedData {
         self.mhv4_data_array.clone()
     }
 
-    pub fn get_status(&self) -> (bool, bool) {
-        (true, self.is_rc)
-    }
-
-    pub fn set_status(&mut self, in_is_on: bool, in_is_rc: bool) {
-        self.is_rc = in_is_rc;
-    }
-
     pub fn set_current(&mut self, id: usize, in_current: isize) {
         self.mhv4_data_array[id].set_current(in_current);
     }
@@ -78,6 +70,7 @@ pub enum OperationError {
     DataLockError,
     JSONSerializeError,
     ReadingError,
+    SharedDataError,
 }
 
 impl fmt::Display for OperationError {
@@ -95,6 +88,7 @@ impl fmt::Display for OperationError {
             OperationError::DataLockError => write!(f, "Data Lock Error"),
             OperationError::JSONSerializeError => write!(f, "JSON Serialize Error"),
             OperationError::ReadingError => write!(f, "Reading Error"),
+            OperationError::SharedDataError => write!(f, "Could not get shared data"),
         }
     }
 }
