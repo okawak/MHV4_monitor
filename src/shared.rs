@@ -57,6 +57,9 @@ pub struct CLArguments {
 
     #[clap(short = 'm', long = "max_voltage", default_value = "3000")] // 1 -> 0.1 V
     pub max_voltage: isize,
+
+    #[clap(short = 'l', long = "localhost")] // 1 -> 0.1 V
+    pub is_localhost: bool,
 }
 
 // This error is used only for initialize part

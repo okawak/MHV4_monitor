@@ -18,21 +18,15 @@ import {
   getInitMHV4pol,
 } from "@/lib/transformInitData";
 
-type OnoffType = boolean[][]; // true = ON
-type PolType = boolean[][]; // true = positive
 type VoltageType = number[][];
 type CurrentType = number[][];
 
 interface MHV4ContextType {
-  onoffArray: OnoffType;
-  polArray: PolType;
   voltageArray: VoltageType;
   currentArray: CurrentType;
 }
 
 const defaultState: MHV4ContextType = {
-  onoffArray: [[false, false, false, false]],
-  polArray: [[false, false, false, false]],
   voltageArray: [
     [0, 0, 0, 0],
     [0, 0, 0, 0],
@@ -47,10 +41,6 @@ interface MHV4ProviderProps {
 }
 
 export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
-  const [onoffArray, setOnoffArray] = useState<OnoffType>(
-    defaultState.onoffArray,
-  );
-  const [polArray, setPolArray] = useState<PolType>(defaultState.polArray);
   const [voltageArray, setVolArray] = useState<VoltageType>(
     defaultState.voltageArray,
   );
@@ -61,7 +51,6 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log(process.env.NEXT_PUBLIC_INIT_ROUTE);
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_INIT_ROUTE}`,
         );
@@ -108,7 +97,7 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
 
   return (
     <MHV4Context.Provider
-      value={{ onoffArray, polArray, voltageArray, currentArray }}
+      value={{ voltageArray, currentArray }}
     >
       {children}
     </MHV4Context.Provider>

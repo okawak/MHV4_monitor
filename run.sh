@@ -3,6 +3,9 @@
 # Log type
 log_type="debug" # info, debug, trace
 
+# localhost server
+localhost="-l" # -l or blank
+
 # for read error
 max_voltage="3000"
 port_name="/dev/ttyUSB0"
@@ -14,4 +17,4 @@ waiting_time="500" # ms
 #pkill ${port_name}
 
 # start the server
-RUST_LOG="${log_type}" cargo run --release --bin mhv4_monitor -- -p $port_name -r $port_rate -s $voltage_step -w $waiting_time -m $max_voltage
+RUST_LOG="${log_type}" cargo run --release --bin mhv4_monitor -- $localhost -p $port_name -r $port_rate -s $voltage_step -w $waiting_time -m $max_voltage

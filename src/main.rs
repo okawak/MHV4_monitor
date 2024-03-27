@@ -521,16 +521,30 @@ async fn main() -> Result<(), OperationError> {
             warp::reply::json(&result)
         });
 
-    let static_files = warp::fs::dir("www");
+    if ARGS
+        .get()
+        .ok_or(OperationError::ArgumentError)?
+        .is_localhost
+    {
+        let routes = warp::fs::dir("www")
+            .or(mhv4_data_route)
+            .or(sse_route)
+            .or(status_route)
+            .or(onoff_route)
+            .or(apply_route);
 
-    let routes = static_files
-        .or(mhv4_data_route)
-        .or(sse_route)
-        .or(status_route)
-        .or(onoff_route)
-        .or(apply_route);
+        warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
+    } else {
+        let routes = mhv4_data_route
+            .or(sse_route)
+            .or(status_route)
+            .or(onoff_route)
+            .or(apply_route);
 
-    warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
+        warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
+    }
+
+    //warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 
     Ok(())
 }
