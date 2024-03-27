@@ -8,6 +8,16 @@ import React, {
   ReactNode,
 } from "react";
 
+import {
+  getInitRCStatus,
+  getInitProgStatus,
+  getInitMHV4bus,
+  getInitMHV4dev,
+  getInitMHV4ch,
+  getInitMHV4onoff,
+  getInitMHV4pol,
+} from "@/lib/transformInitData";
+
 type OnoffType = boolean[][]; // true = ON
 type PolType = boolean[][]; // true = positive
 type VoltageType = number[][];
@@ -51,14 +61,23 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log(process.env.NEXT_PUBLIC_INIT_ROUTE);
         const response = await fetch(
-          `http://${process.env.NEXT_PUBLIC_HOSTNAME}:${process.env.NEXT_PUBLIC_PORT}${process.env.NEXT_PUBLIC_INIT_ROUTE}`,
+          `${process.env.NEXT_PUBLIC_INIT_ROUTE}`,
         );
         if (!response.ok) {
           throw new Error("failed to fetch the MHV4 data");
         }
         const initialData = await response.json();
+        console.log(initialData);
         // process
+        console.log(getInitRCStatus(initialData));
+        console.log(getInitProgStatus(initialData));
+        console.log(getInitMHV4bus(initialData));
+        console.log(getInitMHV4dev(initialData));
+        console.log(getInitMHV4ch(initialData));
+        console.log(getInitMHV4onoff(initialData));
+        console.log(getInitMHV4pol(initialData));
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       }
@@ -67,7 +86,7 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
     fetchData();
 
     const eventSource = new EventSource(
-      `http://${process.env.NEXT_PUBLIC_HOSTNAME}:${process.env.NEXT_PUBLIC_PORT}${process.env.NEXT_PUBLIC_SSE_ROUTE}`,
+      `${process.env.NEXT_PUBLIC_SSE_ROUTE}`,
     );
     eventSource.onopen = (event) => {
       console.log("SSE connection opened: ", event);

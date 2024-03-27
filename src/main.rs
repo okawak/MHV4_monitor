@@ -89,7 +89,6 @@ async fn initialize_status() -> Result<(), OperationError> {
                 }
 
                 // read polarity
-                log::info!("polarity read is not supported for idc = 17?");
                 let mut is_positive = false;
                 let command = format!("re {} {} {}\r", bus, dev, ch + 46);
                 let read_array = port_write_and_read(command)?;
@@ -412,7 +411,7 @@ fn set_voltage(nums: Vec<isize>) -> Result<bool, OperationError> {
 }
 
 fn port_write_and_read(command: String) -> Result<Vec<String>, OperationError> {
-    log::debug!("command: {}", command);
+    log::trace!("command: {}", command);
 
     let mut buf: Vec<u8> = vec![0; 100];
     let size: usize;
@@ -429,7 +428,7 @@ fn port_write_and_read(command: String) -> Result<Vec<String>, OperationError> {
     let read_array = string.split("\n\r").collect::<Vec<_>>();
     let vec = read_array.iter().map(|&s| s.to_string()).collect();
 
-    log::debug!("result: {:?}", vec);
+    log::trace!("result: {:?}", vec);
 
     Ok(vec)
 }
