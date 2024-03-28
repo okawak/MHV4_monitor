@@ -26,13 +26,13 @@ import {
 
 type RCType = boolean;
 type ProgressType = boolean;
-type BusType = number[][];
-type DevType = number[][];
-type ChType = number[][];
-type VoltageType = number[][];
-type CurrentType = number[][];
-type IsOnType = boolean[][];
-type IsPositiveType = boolean[][];
+type BusType = number[];
+type DevType = number[];
+type ChType = number[];
+type VoltageType = number[];
+type CurrentType = number[];
+type IsOnType = boolean[];
+type IsPositiveType = boolean[];
 
 interface MHV4ContextType {
   rcType: RCType;
@@ -126,17 +126,13 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
       console.error("SSE connection error: ", event);
       setVolArray((currentArray) => {
         for (let i = 0; i < currentArray.length; i++) {
-          for (let j = 0; j < currentArray[i].length; j++) {
-            currentArray[i][j] = -100000;
-          }
+          currentArray[i] = -100000;
         }
         return currentArray;
       });
       setCurArray((currentArray) => {
         for (let i = 0; i < currentArray.length; i++) {
-          for (let j = 0; j < currentArray[i].length; j++) {
-            currentArray[i][j] = -100000;
-          }
+          currentArray[i] = -100000;
         }
         return currentArray;
       });
