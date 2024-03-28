@@ -8,102 +8,87 @@ import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 
-const processPolArray = (inputArray: boolean[]): string[] => {
-  return inputArray.map((value) => {
-    if (value) {
-      return "+";
-    } else {
-      return "-";
-    }
-  });
+const processBooleanArray = (
+  inputArray: boolean[],
+  trueValue: string,
+  falseValue: string
+): string[] => {
+  return inputArray.map(value => value ? trueValue : falseValue);
 };
 
-const processOnOffArray = (inputArray: boolean[]): string[] => {
-  return inputArray.map((value) => {
-    if (value) {
-      return "ON";
-    } else {
-      return "OFF";
-    }
-  });
+const processNumberArray = (
+  inputArray: number[],
+  transform: (value: number) => number,
+  decimalPlaces: number
+): string[] => {
+  return inputArray.map(value =>
+    value < -99999 ? "read error!" : transform(value).toFixed(decimalPlaces)
+  );
 };
 
+const processPolArray = (inputArray: boolean[]): string[] => 
+  processBooleanArray(inputArray, "+", "-");
 
-const processVoltageArray = (inputArray: number[]): string[] => {
-  return inputArray.map((value) => {
-    if (value < -99999) {
-      return "read error!";
-    } else {
-      return (value * 0.1).toFixed(1).toString();
-    }
-  });
-};
+const processOnOffArray = (inputArray: boolean[]): string[] => 
+  processBooleanArray(inputArray, "ON", "OFF");
 
-const processCurrentArray = (inputArray: number[]): string[] => {
-  return inputArray.map((value) => {
-    if (value < -99999) {
-      return "read error!";
-    } else {
-      return (value * 0.001).toFixed(3).toString();
-    }
-  });
-};
+const processVoltageArray = (inputArray: number[]): string[] => 
+  processNumberArray(inputArray, value => value * 0.1, 1);
 
+const processCurrentArray = (inputArray: number[]): string[] => 
+  processNumberArray(inputArray, value => value * 0.001, 3);
 
 const MHV4Table: React.FC = () => {
   const { progressType, busArray, devArray, chArray, voltageArray, currentArray, isOnArray, isPositiveArray } = useMHV4Data();
+  const onoffs = processOnOffArray(isOnArray);
   const pols = processPolArray(isPositiveArray);
   const voltages = processVoltageArray(voltageArray);
   const currents = processCurrentArray(currentArray);
 
-  let border_color = "border-green-500";
+  let border_style = "border-2 border-green-500";
   if (!progressType) {
-    border_color = "border-yellow-500";
+    border_style = "border-2 border-yellow-500";
   }
 
   return (
-    <Table className="border-solid text-center">
-      <TableHeader className="bg-blue-100 font-bold">
+    <Table className={border_style}>
+      <TableHeader className="bg-blue-80">
         <TableRow>
-          <TableHead>bus</TableHead>
-          <TableHead>dev</TableHead>
-          <TableHead>ch</TableHead>
-          <TableHead>status</TableHead>
-          <TableHead>on/off</TableHead>
-          <TableHead>pol</TableHead>
-          <TableHead>input (V)</TableHead>
-          <TableHead>voltage (V)</TableHead>
-          <TableHead>current (uA)</TableHead>
-          <TableHead>name</TableHead>
-          <TableHead>discription</TableHead>
+          <TableHead className="font-bold">bus</TableHead>
+          <TableHead className="font-bold">dev</TableHead>
+          <TableHead className="font-bold">ch</TableHead>
+          <TableHead className="font-bold">status</TableHead>
+          <TableHead className="font-bold">on/off</TableHead>
+          <TableHead className="font-bold">pol</TableHead>
+          <TableHead className="font-bold">input (V)</TableHead>
+          <TableHead className="font-bold">voltage (V)</TableHead>
+          <TableHead className="font-bold">current (uA)</TableHead>
+          <TableHead className="font-bold">name</TableHead>
+          <TableHead className="font-bold">discription</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {busArray.map((bus, index) => (
           <TableRow key={bus}>
-            <TableCell>{bus}</TableCell>
-            <TableCell>{devArray[index]}</TableCell>
-            <TableCell>{chArray[index]}</TableCell>
-            <TableCell>{isOnArray[index]}</TableCell>
-            <TableCell><Switch/></TableCell>
-            <TableCell>{pols[index]}</TableCell>
-            <TableCell><Input/></TableCell>
-            <TableCell>{voltages[index]}</TableCell>
-            <TableCell>{currents[index]}</TableCell>
-            <TableCell>test</TableCell>
-            <TableCell>test</TableCell>
+            <TableCell className="border">{bus}</TableCell>
+            <TableCell className="border">{devArray[index]}</TableCell>
+            <TableCell className="border">{chArray[index]}</TableCell>
+            <TableCell className="border">{onoffs[index]}</TableCell>
+            <TableCell className="border"><Switch/></TableCell>
+            <TableCell className="border">{pols[index]}</TableCell>
+            <TableCell className="border"><Input/></TableCell>
+            <TableCell className="border">{voltages[index]}</TableCell>
+            <TableCell className="border">{currents[index]}</TableCell>
+            <TableCell className="border"><Input/></TableCell>
+            <TableCell className="border"><Input/></TableCell>
           </TableRow>
         ))}
-        <TableRow>
-        </TableRow>
       </TableBody>
 
     </Table>
