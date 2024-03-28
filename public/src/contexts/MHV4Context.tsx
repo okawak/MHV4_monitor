@@ -18,20 +18,38 @@ import {
   getInitMHV4pol,
 } from "@/lib/transformInitData";
 
+type RCType = boolean;
+type ProgressType = boolean;
+type BusType = number[][];
+type DevType = number[][];
+type ChType = number[][];
 type VoltageType = number[][];
 type CurrentType = number[][];
+type IsOnType = boolean[][];
+type IsPositiveType = boolean[][];
 
 interface MHV4ContextType {
+  rcType: RCType;
+  progressType: ProgressType;
+  busArray: BusType;
+  devArray: DevType;
+  chArray: ChType;
   voltageArray: VoltageType;
   currentArray: CurrentType;
+  isOnArray: IsOnType;
+  isPositiveArray: IsPositiveType;
 }
 
 const defaultState: MHV4ContextType = {
-  voltageArray: [
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-  ],
-  currentArray: [[0, 0, 0, 0]],
+  rcType: false,
+  progressType: false,
+  busArray: [],
+  devArray: [],
+  chArray: [],
+  voltageArray: [],
+  currentArray: [],
+  isOnArray: [],
+  isPositiveArray: [],
 };
 
 const MHV4Context = createContext<MHV4ContextType>(defaultState);
@@ -41,11 +59,24 @@ interface MHV4ProviderProps {
 }
 
 export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
+  const [rcType, setRCType] = useState<RCType>(defaultState.rcType);
+  const [progressType, setProgressType] = useState<ProgressType>(
+    defaultState.progressType,
+  );
+  const [busArray, setBusArray] = useState<BusType>(defaultState.busArray);
+  const [devArray, setDevArray] = useState<DevType>(defaultState.devArray);
+  const [chArray, setChArray] = useState<ChType>(defaultState.chArray);
+
   const [voltageArray, setVolArray] = useState<VoltageType>(
     defaultState.voltageArray,
   );
   const [currentArray, setCurArray] = useState<CurrentType>(
     defaultState.currentArray,
+  );
+
+  const [isOnArray, setIsOnArray] = useState<IsOnType>(defaultState.isOnArray);
+  const [isPositiveArray, setIsPositiveArray] = useState<IsPositiveType>(
+    defaultState.isPositiveArray,
   );
 
   useEffect(() => {
@@ -58,14 +89,27 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
         const initialData = await response.json();
         console.log(initialData);
         const data = JSON.parse(initialData);
-        // process
+        // set initial state
         console.log(getInitRCStatus(data));
+        setRCType(getInitRCStatus(data));
+
         console.log(getInitProgStatus(data));
+        setProgressType(getInitProgStatus(data));
+
         console.log(getInitMHV4bus(data));
+        setBusArray(getInitMHV4bus(data));
+
         console.log(getInitMHV4dev(data));
+        setDevArray(getInitMHV4dev(data));
+
         console.log(getInitMHV4ch(data));
+        setChArray(getInitMHV4ch(data));
+
         console.log(getInitMHV4onoff(data));
+        setIsOnArray(getInitMHV4onoff(data));
+
         console.log(getInitMHV4pol(data));
+        setIsPositiveArray(getInitMHV4pol(data));
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       }
@@ -93,7 +137,19 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
   }, []);
 
   return (
-    <MHV4Context.Provider value={{ voltageArray, currentArray }}>
+    <MHV4Context.Provider
+      value={{
+        rcType,
+        progressType,
+        busArray,
+        devArray,
+        chArray,
+        voltageArray,
+        currentArray,
+        isOnArray,
+        isPositiveArray,
+      }}
+    >
       {children}
     </MHV4Context.Provider>
   );
