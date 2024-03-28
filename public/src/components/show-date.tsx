@@ -3,23 +3,27 @@
 import { useEffect, useState } from "react";
 
 type Props = {
-    locale?: string;
+  locale?: string;
 };
 
 const ShowDate = ({ locale = "ja-JP" }: Props) => {
-    const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(new Date());
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setDate(new Date());
-        }, 1000);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDate(new Date());
+    }, 1000);
 
-        return () => {
-            clearInterval(timer);
-        };
-    }, []);
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
 
-    return <div className="block p-2">{date.toLocaleString(locale)}</div>;
+  return (
+    <div className="block p-2" suppressHydrationWarning>
+      {date.toLocaleString(locale)}
+    </div>
+  );
 };
 
 export default ShowDate;

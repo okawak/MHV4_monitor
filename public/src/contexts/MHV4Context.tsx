@@ -51,22 +51,21 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_INIT_ROUTE}`,
-        );
+        const response = await fetch(`${process.env.NEXT_PUBLIC_INIT_ROUTE}`);
         if (!response.ok) {
           throw new Error("failed to fetch the MHV4 data");
         }
         const initialData = await response.json();
         console.log(initialData);
+        const data = JSON.parse(initialData);
         // process
-        console.log(getInitRCStatus(initialData));
-        console.log(getInitProgStatus(initialData));
-        console.log(getInitMHV4bus(initialData));
-        console.log(getInitMHV4dev(initialData));
-        console.log(getInitMHV4ch(initialData));
-        console.log(getInitMHV4onoff(initialData));
-        console.log(getInitMHV4pol(initialData));
+        console.log(getInitRCStatus(data));
+        console.log(getInitProgStatus(data));
+        console.log(getInitMHV4bus(data));
+        console.log(getInitMHV4dev(data));
+        console.log(getInitMHV4ch(data));
+        console.log(getInitMHV4onoff(data));
+        console.log(getInitMHV4pol(data));
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       }
@@ -74,9 +73,7 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
 
     fetchData();
 
-    const eventSource = new EventSource(
-      `${process.env.NEXT_PUBLIC_SSE_ROUTE}`,
-    );
+    const eventSource = new EventSource(`${process.env.NEXT_PUBLIC_SSE_ROUTE}`);
     eventSource.onopen = (event) => {
       console.log("SSE connection opened: ", event);
     };
@@ -96,9 +93,7 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
   }, []);
 
   return (
-    <MHV4Context.Provider
-      value={{ voltageArray, currentArray }}
-    >
+    <MHV4Context.Provider value={{ voltageArray, currentArray }}>
       {children}
     </MHV4Context.Provider>
   );

@@ -470,16 +470,16 @@ async fn main() -> Result<(), OperationError> {
 
     log::info!("Setting the routing...");
 
-    let mhv4_data_route = warp::path("/mhv4_data")
+    let mhv4_data_route = warp::path("mhv4_data")
         .and(warp::get())
         .and_then(get_mhv4_data);
 
-    let sse_route = warp::path("/sse").and(warp::get()).map(|| {
+    let sse_route = warp::path("sse").and(warp::get()).map(|| {
         let stream = get_sse_stream();
         warp::sse::reply(warp::sse::keep_alive().stream(stream))
     });
 
-    let status_route = warp::path("/status")
+    let status_route = warp::path("status")
         .and(warp::post())
         .and(warp::body::json())
         .map(move |do_rc: bool| {
@@ -493,7 +493,7 @@ async fn main() -> Result<(), OperationError> {
             warp::reply::json(&result)
         });
 
-    let onoff_route = warp::path("/onoff")
+    let onoff_route = warp::path("onoff")
         .and(warp::post())
         .and(warp::body::json())
         .map(move |arr: Vec<bool>| {
@@ -507,7 +507,7 @@ async fn main() -> Result<(), OperationError> {
             warp::reply::json(&result)
         });
 
-    let apply_route = warp::path("/apply")
+    let apply_route = warp::path("apply")
         .and(warp::post())
         .and(warp::body::json())
         .map(move |nums: Vec<isize>| {
