@@ -125,16 +125,12 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
     eventSource.onerror = (event) => {
       console.error("SSE connection error: ", event);
       setVolArray((currentArray) => {
-        for (let i = 0; i < currentArray.length; i++) {
-          currentArray[i] = -100000;
-        }
-        return currentArray;
+        const newArray = currentArray.map(() => -100000);
+        return newArray;
       });
       setCurArray((currentArray) => {
-        for (let i = 0; i < currentArray.length; i++) {
-          currentArray[i] = -100000;
-        }
-        return currentArray;
+        const newArray = currentArray.map(() => -100000);
+        return newArray;
       });
     };
 

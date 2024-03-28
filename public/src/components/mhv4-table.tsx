@@ -52,13 +52,13 @@ const MHV4Table: React.FC = () => {
   const currents = processCurrentArray(currentArray);
 
   let border_style = "border-2 border-green-500";
-  if (!progressType) {
+  if (progressType) {
     border_style = "border-2 border-yellow-500";
   }
 
   return (
     <Table className={border_style}>
-      <TableHeader className="bg-blue-80">
+      <TableHeader className="bg-blue-100">
         <TableRow>
           <TableHead className="font-bold">bus</TableHead>
           <TableHead className="font-bold">dev</TableHead>
