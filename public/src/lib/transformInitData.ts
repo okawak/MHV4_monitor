@@ -31,6 +31,8 @@ function getInitMHV4Data(
         } else {
           acc[acc.length - 1].push(mod[key]);
         }
+      } else {
+        acc[acc.length - 1].push(mod[key]);
       }
       return acc;
     },

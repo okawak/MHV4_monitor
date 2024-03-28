@@ -18,6 +18,12 @@ import {
   getInitMHV4pol,
 } from "@/lib/transformInitData";
 
+import {
+  getSSEProgStatus,
+  getSSEVoltageArray,
+  getSSECurrentArray,
+} from "@/lib/transformSSEData";
+
 type RCType = boolean;
 type ProgressType = boolean;
 type BusType = number[][];
@@ -90,25 +96,12 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
         console.log(initialData);
         const data = JSON.parse(initialData);
         // set initial state
-        console.log(getInitRCStatus(data));
         setRCType(getInitRCStatus(data));
-
-        console.log(getInitProgStatus(data));
         setProgressType(getInitProgStatus(data));
-
-        console.log(getInitMHV4bus(data));
         setBusArray(getInitMHV4bus(data));
-
-        console.log(getInitMHV4dev(data));
         setDevArray(getInitMHV4dev(data));
-
-        console.log(getInitMHV4ch(data));
         setChArray(getInitMHV4ch(data));
-
-        console.log(getInitMHV4onoff(data));
         setIsOnArray(getInitMHV4onoff(data));
-
-        console.log(getInitMHV4pol(data));
         setIsPositiveArray(getInitMHV4pol(data));
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
@@ -123,8 +116,11 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
     };
     eventSource.onmessage = (event) => {
       console.log("SSE message received: ", event);
-      const data = JSON.parse(event.data);
-      // process
+      const ssedata = JSON.parse(event.data);
+      // set SSE data
+      setProgressType(getSSEProgStatus(ssedata));
+      setVolArray(getSSEVoltageArray(ssedata));
+      setCurArray(getSSECurrentArray(ssedata));
     };
     eventSource.onerror = (event) => {
       console.error("SSE connection error: ", event);

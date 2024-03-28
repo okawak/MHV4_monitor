@@ -5,6 +5,7 @@ import { useMHV4Data } from "@/contexts/MHV4Context";
 
 const NumberArrayComponent: React.FC = () => {
   const { voltageArray } = useMHV4Data();
+  console.log("component" + voltageArray);
 
   return (
     <div>
