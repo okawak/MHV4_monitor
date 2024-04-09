@@ -469,6 +469,10 @@ async fn main() -> Result<(), OperationError> {
     initialize_status().await?;
 
     log::info!("Setting the routing...");
+    let cors = warp::cors()
+        .allow_any_origin()
+        .allow_headers(vec!["Content-Type"])
+        .allow_methods(vec!["POST"]);
 
     let mhv4_data_route = warp::path("mhv4_data")
         .and(warp::get())
@@ -491,7 +495,8 @@ async fn main() -> Result<(), OperationError> {
                 }
             };
             warp::reply::json(&result)
-        });
+        })
+        .with(cors.clone());
 
     let onoff_route = warp::path("onoff")
         .and(warp::post())
@@ -505,7 +510,8 @@ async fn main() -> Result<(), OperationError> {
                 }
             };
             warp::reply::json(&result)
-        });
+        })
+        .with(cors.clone());
 
     let apply_route = warp::path("apply")
         .and(warp::post())
@@ -519,7 +525,8 @@ async fn main() -> Result<(), OperationError> {
                 }
             };
             warp::reply::json(&result)
-        });
+        })
+        .with(cors.clone());
 
     if ARGS
         .get()
@@ -527,7 +534,6 @@ async fn main() -> Result<(), OperationError> {
         .is_localhost
     {
         let static_files = warp::fs::dir("public/out");
-        //let static_files = warp::fs::dir("www");
         let routes = static_files
             .or(mhv4_data_route)
             .or(sse_route)
@@ -545,8 +551,6 @@ async fn main() -> Result<(), OperationError> {
 
         warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
     }
-
-    //warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 
     Ok(())
 }

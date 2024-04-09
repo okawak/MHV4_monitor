@@ -87,6 +87,12 @@ const MHV4Table: React.FC<InputProps> = ({ onValueChange }) => {
   if (progressType) {
     border_style = "border-2 border-yellow-500";
   }
+  if (
+    voltages.some((str) => str === "read error!") ||
+    currents.some((str) => str === "read error!")
+  ) {
+    border_style = "border-2 border-red-500";
+  }
 
   return (
     <Table className={border_style}>
@@ -121,7 +127,7 @@ const MHV4Table: React.FC<InputProps> = ({ onValueChange }) => {
                 type="number"
                 step={0.1}
                 min={0}
-                value={Math.abs(voltageArray[index] * 0.1).toFixed(1)}
+                defaultValue={0}
                 onChange={(e) => onValueChange(Number(e.target.value), index)}
               />
             </TableCell>

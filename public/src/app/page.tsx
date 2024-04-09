@@ -6,14 +6,16 @@ import { useMHV4Data } from "@/contexts/MHV4Context";
 import ShowDate from "@/components/show-date";
 import PrintButton from "@/components/print-button";
 import MHV4Table from "@/components/mhv4-table";
+import ApplyButton from "@/components/apply-button";
+//import OnoffButton from "@/components/onoff-button";
 
 export default function Home() {
   const { voltageArray } = useMHV4Data();
   const [inputValues, setInputValues] = useState<number[]>([]);
 
   useEffect(() => {
-    setInputValues([...voltageArray]);
-  }, []);
+    setInputValues(new Array(voltageArray.length).fill(0));
+  }, [voltageArray.length]);
 
   const handleValueChange = (newValue: number, index: number) => {
     const updatedValues = inputValues.map((value, i) =>
@@ -31,6 +33,7 @@ export default function Home() {
       <MHV4Table
         onValueChange={(newValue, index) => handleValueChange(newValue, index)}
       />
+      <ApplyButton inputs={inputValues} />
     </main>
   );
 }
