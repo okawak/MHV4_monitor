@@ -36,6 +36,7 @@ type IsPositiveType = boolean[];
 
 interface MHV4ContextType {
   rcType: RCType;
+  setRCType: (newValue: RCType) => void;
   progressType: ProgressType;
   busArray: BusType;
   devArray: DevType;
@@ -48,6 +49,7 @@ interface MHV4ContextType {
 
 const defaultState: MHV4ContextType = {
   rcType: false,
+  setRCType: () => {},
   progressType: false,
   busArray: [],
   devArray: [],
@@ -143,6 +145,7 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
     <MHV4Context.Provider
       value={{
         rcType,
+        setRCType,
         progressType,
         busArray,
         devArray,

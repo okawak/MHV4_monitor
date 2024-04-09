@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,30 +12,31 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useMHV4Data } from "@/contexts/MHV4Context";
 
-interface RCProps {
-  do_rc: boolean;
-}
-
-const RCButton: React.FC<RCProps> = ({ do_rc }) => {
+const RCButton: React.FC = () => {
+  const { rcType, setRCType } = useMHV4Data();
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     setLoading(true);
-    console.log("input value: RC mode is >", do_rc);
+    console.log("input value: RC mode is >", rcType);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_STATUS_ROUTE}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(!do_rc),
+        body: JSON.stringify(!rcType),
       });
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
       const responseData = await response.json();
       console.log("Result from apply route:", responseData);
+      if (responseData) {
+        setRCType(!rcType);
+      }
     } catch (error) {
       console.error("Fetch error:", error);
     } finally {
@@ -50,7 +51,7 @@ const RCButton: React.FC<RCProps> = ({ do_rc }) => {
   style_str += " focus-visible:ring-ring focus-visible:ring-offset-2";
   style_str += " disabled:pointer-events-none disabled:opacity-50";
 
-  if (do_rc) {
+  if (rcType) {
     style_str += " bg-green-700 text-primary-foreground hover:bg-green-700/80";
   } else {
     style_str += " bg-red-700 text-primary-foreground hover:bg-red-700/80";
@@ -60,7 +61,7 @@ const RCButton: React.FC<RCProps> = ({ do_rc }) => {
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <div className={style_str}>
-          <button onClick={handleSubmit} disabled={loading}>
+          <button disabled={loading}>
             {loading ? "Processing..." : "Change RC/Local mode"}
           </button>
         </div>
@@ -69,13 +70,15 @@ const RCButton: React.FC<RCProps> = ({ do_rc }) => {
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your
-            account and remove your data from our servers.
+            Warning: when the mode will be changed, the voltages should be 0. Do
+            you already turn off the all channel?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction>Continue</AlertDialogAction>
+          <AlertDialogAction>
+            <button onClick={handleSubmit}>Continue</button>
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -30,7 +30,7 @@ export default function Home() {
       <h1 className="bg-gray-100 px-5 py-5 text-3xl font-bold">MHV4 monitor</h1>
       <ShowDate />
       <PrintButton />
-      <RCButton do_rc={rcType} />
+      <RCButton />
       <MHV4Table
         onValueChange={(newValue, index) => handleValueChange(newValue, index)}
       />
