@@ -18,7 +18,7 @@ const ApplyButton: React.FC<InputProps> = ({ inputs }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ inputs }),
+        body: JSON.stringify(inputs),
       });
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
