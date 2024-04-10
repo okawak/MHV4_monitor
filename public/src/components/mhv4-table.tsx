@@ -64,10 +64,14 @@ const processCurrentArray = (inputArray: number[]): string[] =>
   processNumberArray(inputArray, (value) => value * 0.001, 3);
 
 interface InputProps {
+  onCheckedChange: (state: boolean, index: number) => void;
   onValueChange: (newValue: number, index: number) => void;
 }
 
-const MHV4Table: React.FC<InputProps> = ({ onValueChange }) => {
+const MHV4Table: React.FC<InputProps> = ({
+  onCheckedChange,
+  onValueChange,
+}) => {
   const {
     progressType,
     busArray,
@@ -119,7 +123,18 @@ const MHV4Table: React.FC<InputProps> = ({ onValueChange }) => {
             <TableCell className="border">{chArray[index]}</TableCell>
             <TableCell className="border">{onoffs[index]}</TableCell>
             <TableCell className="border">
-              <Switch />
+              {isOnArray[index] ? (
+                <Switch
+                  color="green"
+                  onCheckedChange={(checked) => onCheckedChange(checked, index)}
+                  defaultChecked
+                />
+              ) : (
+                <Switch
+                  color="green"
+                  onCheckedChange={(checked) => onCheckedChange(checked, index)}
+                />
+              )}
             </TableCell>
             <TableCell className="border">{pols[index]}</TableCell>
             <TableCell className="border">

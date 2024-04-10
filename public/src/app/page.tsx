@@ -7,22 +7,34 @@ import ShowDate from "@/components/show-date";
 import RCButton from "@/components/rc-button";
 import PrintButton from "@/components/print-button";
 import MHV4Table from "@/components/mhv4-table";
+import OnoffButton from "@/components/onoff-button";
 import ApplyButton from "@/components/apply-button";
-//import OnoffButton from "@/components/onoff-button";
 
 export default function Home() {
-  const { rcType, voltageArray } = useMHV4Data();
+  const { voltageArray, isOnArray } = useMHV4Data();
   const [inputValues, setInputValues] = useState<number[]>([]);
+  const [onoffStates, setOnoffStates] = useState<boolean[]>([]);
 
   useEffect(() => {
     setInputValues(new Array(voltageArray.length).fill(0));
   }, [voltageArray.length]);
+
+  useEffect(() => {
+    setOnoffStates([...isOnArray]);
+  }, []);
 
   const handleValueChange = (newValue: number, index: number) => {
     const updatedValues = inputValues.map((value, i) =>
       i === index ? newValue : value,
     );
     setInputValues(updatedValues);
+  };
+
+  const handleStateChange = (state: boolean, index: number) => {
+    const updatedStates = onoffStates.map((value, i) =>
+      i === index ? state : value,
+    );
+    setOnoffStates(updatedStates);
   };
 
   return (
@@ -32,8 +44,10 @@ export default function Home() {
       <PrintButton />
       <RCButton />
       <MHV4Table
+        onCheckedChange={(state, index) => handleStateChange(state, index)}
         onValueChange={(newValue, index) => handleValueChange(newValue, index)}
       />
+      <OnoffButton inputs={onoffStates} />
       <ApplyButton inputs={inputValues} />
     </main>
   );

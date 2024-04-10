@@ -44,6 +44,7 @@ interface MHV4ContextType {
   voltageArray: VoltageType;
   currentArray: CurrentType;
   isOnArray: IsOnType;
+  setIsOnArray: (newStates: IsOnType) => void;
   isPositiveArray: IsPositiveType;
 }
 
@@ -57,6 +58,7 @@ const defaultState: MHV4ContextType = {
   voltageArray: [],
   currentArray: [],
   isOnArray: [],
+  setIsOnArray: () => {},
   isPositiveArray: [],
 };
 
@@ -153,6 +155,7 @@ export const MHV4DataProvider: React.FC<MHV4ProviderProps> = ({ children }) => {
         voltageArray,
         currentArray,
         isOnArray,
+        setIsOnArray,
         isPositiveArray,
       }}
     >
