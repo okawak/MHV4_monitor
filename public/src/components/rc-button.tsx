@@ -56,35 +56,37 @@ const RCButton: React.FC = () => {
   } else {
     style_str += " bg-red-700 text-primary-foreground hover:bg-red-700/80";
   }
-  style_str += " mx-1 h-8 px-8 py-8";
+  style_str += " mx-2 mt-1 mb-4 h-8 px-4 py-4";
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <div>
-          <p>Red: local mode, Green: Remote mode</p>
-        </div>
-        <div className={style_str}>
-          <button disabled={loading}>
-            {loading ? "Processing..." : "Change RC/Local mode"}
-          </button>
-        </div>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Warning: when the mode will be changed, the voltages should be 0. Do
-            you already turn off the all channel?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction>
-            <button onClick={handleSubmit}>Continue</button>
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <div>
+      <div className="mt-8 mx-4">
+        <p>Red: local mode, Green: Remote mode</p>
+      </div>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <div className={style_str}>
+            <button disabled={loading}>
+              {loading ? "Processing..." : "Change RC/Local mode"}
+            </button>
+          </div>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Warning: when the mode will be changed, the voltages should be 0.
+              Do you already turn off the all channel?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction>
+              <button onClick={handleSubmit}>Continue</button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 };
 

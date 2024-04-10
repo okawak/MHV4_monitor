@@ -14,25 +14,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const mhv4_discriptions = [
-  ["tel1 dE", "target voltage xxx V"],
-  ["tel1 Eb", "target voltage xxx V"],
-  ["tel1 Ec", "target voltage xxx V"],
-  ["tel1 Ed", "target voltage xxx V"],
-  ["tel2 dE", "target voltage xxx V"],
-  ["tel2 Eb", "target voltage xxx V"],
-  ["tel2 Ec", "target voltage xxx V"],
-  ["tel2 Ed", "target voltage xxx V"],
-  ["tel3 dE", "target voltage xxx V"],
-  ["tel3 Eb", "target voltage xxx V"],
-  ["tel3 Ec", "target voltage xxx V"],
-  ["tel3 Ed", "target voltage xxx V"],
-  ["tel4 dE", "target voltage xxx V"],
-  ["tel4 Eb", "target voltage xxx V"],
-  ["tel4 Ec", "target voltage xxx V"],
-  ["tel4 Ed", "target voltage xxx V"],
-];
-
 const processBooleanArray = (
   inputArray: boolean[],
   trueValue: string,
@@ -64,11 +45,13 @@ const processCurrentArray = (inputArray: number[]): string[] =>
   processNumberArray(inputArray, (value) => value * 0.001, 3);
 
 interface InputProps {
+  userDescription: string[][];
   onCheckedChange: (state: boolean, index: number) => void;
   onValueChange: (newValue: number, index: number) => void;
 }
 
 const MHV4Table: React.FC<InputProps> = ({
+  userDescription,
   onCheckedChange,
   onValueChange,
 }) => {
@@ -149,10 +132,10 @@ const MHV4Table: React.FC<InputProps> = ({
             <TableCell className="border">{voltages[index]}</TableCell>
             <TableCell className="border">{currents[index]}</TableCell>
             <TableCell className="border">
-              {mhv4_discriptions[index][0]}
+              {userDescription[index][0]}
             </TableCell>
             <TableCell className="border">
-              {mhv4_discriptions[index][1]}
+              {userDescription[index][1]}
             </TableCell>
           </TableRow>
         ))}

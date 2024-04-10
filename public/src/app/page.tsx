@@ -10,6 +10,25 @@ import MHV4Table from "@/components/mhv4-table";
 import OnoffButton from "@/components/onoff-button";
 import ApplyButton from "@/components/apply-button";
 
+const mhv4_descriptions = [
+  ["tel1 dE", "target voltage xxx V"],
+  ["tel1 Eb", "target voltage xxx V"],
+  ["tel1 Ec", "target voltage xxx V"],
+  ["tel1 Ed", "target voltage xxx V"],
+  ["tel2 dE", "target voltage xxx V"],
+  ["tel2 Eb", "target voltage xxx V"],
+  ["tel2 Ec", "target voltage xxx V"],
+  ["tel2 Ed", "target voltage xxx V"],
+  ["tel3 dE", "target voltage xxx V"],
+  ["tel3 Eb", "target voltage xxx V"],
+  ["tel3 Ec", "target voltage xxx V"],
+  ["tel3 Ed", "target voltage xxx V"],
+  ["tel4 dE", "target voltage xxx V"],
+  ["tel4 Eb", "target voltage xxx V"],
+  ["tel4 Ec", "target voltage xxx V"],
+  ["tel4 Ed", "target voltage xxx V"],
+];
+
 export default function Home() {
   const { voltageArray, isOnArray } = useMHV4Data();
   const [inputValues, setInputValues] = useState<number[]>([]);
@@ -44,6 +63,7 @@ export default function Home() {
       <PrintButton />
       <RCButton />
       <MHV4Table
+        userDescription={mhv4_descriptions}
         onCheckedChange={(state, index) => handleStateChange(state, index)}
         onValueChange={(newValue, index) => handleValueChange(newValue, index)}
       />
