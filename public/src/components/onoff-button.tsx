@@ -50,7 +50,7 @@ const OnoffButton: React.FC<StateProps> = ({ inputs }) => {
   return (
     <div className={style_str}>
       <button onClick={handleSubmit} disabled={loading}>
-        {loading ? "Processing..." : "Change RC/Local mode"}
+        {loading ? "Processing..." : "apply ON/OFF"}
       </button>
     </div>
   );

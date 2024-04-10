@@ -21,7 +21,7 @@ export default function Home() {
 
   useEffect(() => {
     setOnoffStates([...isOnArray]);
-  }, []);
+  }, [isOnArray.length]);
 
   const handleValueChange = (newValue: number, index: number) => {
     const updatedValues = inputValues.map((value, i) =>
@@ -42,6 +42,8 @@ export default function Home() {
       <h1 className="bg-gray-100 px-5 py-5 text-3xl font-bold">MHV4 monitor</h1>
       <ShowDate />
       <PrintButton />
+      <br />
+      <p>Red: local mode, Green: Remote mode</p>
       <RCButton />
       <MHV4Table
         onCheckedChange={(state, index) => handleStateChange(state, index)}

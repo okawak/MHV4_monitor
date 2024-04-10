@@ -411,7 +411,7 @@ fn set_voltage(nums: Vec<isize>) -> Result<bool, OperationError> {
 }
 
 fn port_write_and_read(command: String) -> Result<Vec<String>, OperationError> {
-    log::trace!("command: {}", command);
+    //log::trace!("command: {}", command);
 
     let mut buf: Vec<u8> = vec![0; 100];
     let size: usize;

@@ -12,13 +12,14 @@ const ApplyButton: React.FC<InputProps> = ({ inputs }) => {
   const handleSubmit = async () => {
     setLoading(true);
     console.log("input value:", inputs);
+    const send_data: number[] = inputs.map((number) => number * 10);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_HV_ROUTE}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(inputs),
+        body: JSON.stringify(send_data),
       });
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);

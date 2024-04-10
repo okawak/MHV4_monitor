@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Log type
-log_type="debug" # info, debug, trace
+log_type="trace" # info, debug, trace
 
 # for read error
 max_voltage="3000"
