@@ -56,10 +56,13 @@ const RCButton: React.FC = () => {
   } else {
     style_str += " bg-red-700 text-primary-foreground hover:bg-red-700/80";
   }
-  style_str += " mx-1 h-8 px-4 py-2";
+  style_str += " mx-1 h-8 px-8 py-8";
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
+        <div>
+          <p>Red: local mode, Green: Remote mode</p>
+        </div>
         <div className={style_str}>
           <button disabled={loading}>
             {loading ? "Processing..." : "Change RC/Local mode"}
