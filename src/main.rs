@@ -476,12 +476,16 @@ async fn main() -> Result<(), OperationError> {
 
     let mhv4_data_route = warp::path("mhv4_data")
         .and(warp::get())
-        .and_then(get_mhv4_data);
+        .and_then(get_mhv4_data)
+        .with(cors.clone());
 
-    let sse_route = warp::path("sse").and(warp::get()).map(|| {
-        let stream = get_sse_stream();
-        warp::sse::reply(warp::sse::keep_alive().stream(stream))
-    });
+    let sse_route = warp::path("sse")
+        .and(warp::get())
+        .map(|| {
+            let stream = get_sse_stream();
+            warp::sse::reply(warp::sse::keep_alive().stream(stream))
+        })
+        .with(cors.clone());
 
     let status_route = warp::path("status")
         .and(warp::post())
