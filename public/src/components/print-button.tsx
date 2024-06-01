@@ -16,8 +16,13 @@ function PrintButton() {
   style_str += " mx-1 h-8 px-4 py-2";
 
   return (
-    <div className={style_str}>
-      <button onClick={printWindow}>print</button>
+    <div>
+      <div className={style_str}>
+        <button onClick={printWindow}>print</button>
+      </div>
+      <div>
+        <br></br>
+      </div>
     </div>
   );
 }

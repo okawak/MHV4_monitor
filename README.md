@@ -59,8 +59,9 @@ write MHV4 descriptions in "public/src/app/pages.tsx"
 ```shell
 vi src/app/pages.tsx
 ```
+Server and client machine is different, you may need to specify the url at **next.config.mjs**.
 
-make a static files
+Then make static files by
 
 ```shell
 npm run build
@@ -68,4 +69,4 @@ npm run build
 
 you can see the page from "public/out" directory.
 
-If you want to use localhost, just "https:IPaddress" is okay.
+If you want to use localhost, just "http:IPaddress" is okay.

@@ -70,15 +70,15 @@ const MHV4Table: React.FC<InputProps> = ({
   const voltages = processVoltageArray(voltageArray);
   const currents = processCurrentArray(currentArray);
 
-  let border_style = "border-2 border-green-500";
+  let border_style = "border-4 border-green-500";
   if (progressType) {
-    border_style = "border-2 border-yellow-500";
+    border_style = "border-4 border-yellow-500";
   }
   if (
     voltages.some((str) => str === "read error!") ||
     currents.some((str) => str === "read error!")
   ) {
-    border_style = "border-2 border-red-500";
+    border_style = "border-4 border-red-500";
   }
 
   return (

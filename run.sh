@@ -11,7 +11,7 @@ voltage_step="5"   # 5 -> 0.5 V
 waiting_time="500" # ms
 
 # localhost server
-localhost=true # true/false
+localhost=false # true/false
 if "${localhost}"; then
     option="-l -p ${port_name} -r ${port_rate} -s ${voltage_step} -w ${waiting_time} -m ${max_voltage}"
 else

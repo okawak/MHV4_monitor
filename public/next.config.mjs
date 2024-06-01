@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "export",
+  // basePath: "/~daq/MHV4_monitor/public/out",
+  // assetPrefix: "/~daq/MHV4_monitor/public/out",
 
   // Optional: Change links `/me` -> `/me/` and emit `/me.html` -> `/me/index.html`
   // trailingSlash: true,

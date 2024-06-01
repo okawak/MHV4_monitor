@@ -56,10 +56,11 @@ const RCButton: React.FC = () => {
   } else {
     style_str += " bg-red-700 text-primary-foreground hover:bg-red-700/80";
   }
-  style_str += " mx-2 mt-1 mb-4 h-8 px-4 py-4";
+  //style_str += " mx-2 mt-1 mb-4 h-8 px-4 py-4";
+  style_str += " mx-1 h-8 px-4 py-2";
   return (
     <div>
-      <div className="mt-8 mx-4">
+      <div className="p-2">
         <p>Red: local mode, Green: Remote mode</p>
       </div>
       <AlertDialog>
@@ -86,6 +87,10 @@ const RCButton: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <div>
+        <br></br>
+      </div>
+
     </div>
   );
 };
